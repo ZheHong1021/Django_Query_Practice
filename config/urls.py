@@ -28,11 +28,16 @@ urlpatterns = [
 # Development Mode
 if DEBUG:
     import debug_toolbar
+    from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
     urlpatterns += [
 
         # debug_toolbar
-        path("__debug__/", include("debug_toolbar.urls")),
+        path("__debug__/", include(debug_toolbar.urls)),
+
+        # Swagger-UI
+        path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
+        path("api/schema/docs/", SpectacularSwaggerView.as_view(url_name="schema")),
     ]
 
 # Production Mode

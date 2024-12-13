@@ -19,7 +19,7 @@ SPECTACULAR_SETTINGS = {
     "COMPONENT_SPLIT_REQUEST": True,  
 
     'TAGS': [  # 定義標籤
-        # {'name': '氣象資訊', 'description': '處理 [氣象資訊] 相關數據'},
+        {'name': '系統管理 - 用戶', 'description': '處理 [系統管理 - 用戶] 相關數據'},
     ],
 
 

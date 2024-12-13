@@ -16,6 +16,11 @@ SPECTACULAR_SETTINGS = {
         "drf_spectacular.hooks.postprocess_schema_customization"
     ],
 
+    # 開啟 Swagger UI 的 persistAuthorization 功能
+    # [只適合 Swagger UI開放給 development 環境使用]
+    'SWAGGER_UI_SETTINGS': {
+        'persistAuthorization': True,
+    },
     
     "COMPONENT_SPLIT_REQUEST": True,  
 

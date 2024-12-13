@@ -1,0 +1,7 @@
+openapi: 3.0.3
+info:
+  title: Query練習平台
+  version: 1.0.0
+  description: Swagger API
+paths: {}
+components: {}

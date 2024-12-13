@@ -15,10 +15,17 @@ SPECTACULAR_SETTINGS = {
         "drf_spectacular.hooks.postprocess_schema_enums",
         "drf_spectacular.hooks.postprocess_schema_customization"
     ],
+
+    # 開啟 Swagger UI 的 persistAuthorization 功能
+    # [只適合 Swagger UI開放給 development 環境使用]
+    'SWAGGER_UI_SETTINGS': {
+        'persistAuthorization': True,
+    },
     
     "COMPONENT_SPLIT_REQUEST": True,  
 
     'TAGS': [  # 定義標籤
+        {'name': '權限處理 - JWT', 'description': '處理 [權限處理 - JWT] 相關數據'},
         {'name': '系統管理 - 用戶', 'description': '處理 [系統管理 - 用戶] 相關數據'},
     ],
 

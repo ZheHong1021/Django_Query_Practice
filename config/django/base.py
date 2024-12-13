@@ -32,6 +32,7 @@ ALLOWED_HOSTS = ["*"]
 # Application definition
 CUSTOM_APPS = [
     "auth.user",
+    "auth.jwt_token",
 ]
 
 # Thired party apps
@@ -40,7 +41,9 @@ THIRD_PARTY_APPS = [
     'rest_framework', # rest_framework
     'django_filters', # filters(排序、搜尋)
     'django_extensions', # 全局自定義管理擴展的存儲庫
-    'drf_spectacular' # Swagger UI
+    'drf_spectacular', # Swagger UI
+    'rest_framework_simplejwt', # JWT
+    'rest_framework_simplejwt.token_blacklist', # JWT黑名單
 ]
 
 INSTALLED_APPS = [

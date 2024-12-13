@@ -15,10 +15,12 @@ SPECTACULAR_SETTINGS = {
         "drf_spectacular.hooks.postprocess_schema_enums",
         "drf_spectacular.hooks.postprocess_schema_customization"
     ],
+
     
     "COMPONENT_SPLIT_REQUEST": True,  
 
     'TAGS': [  # 定義標籤
+        {'name': '權限處理 - JWT', 'description': '處理 [權限處理 - JWT] 相關數據'},
         {'name': '系統管理 - 用戶', 'description': '處理 [系統管理 - 用戶] 相關數據'},
     ],
 

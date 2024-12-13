@@ -24,6 +24,7 @@ from config.django.base import DEBUG
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('auth.user.urls')),
+    path('api/', include('auth.jwt_token.urls')),
 ]
 
 # Development Mode

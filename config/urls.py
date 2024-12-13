@@ -23,6 +23,7 @@ from config.django.base import DEBUG
 # All
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('api/', include('auth.user.urls')),
 ]
 
 # Development Mode

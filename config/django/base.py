@@ -33,6 +33,7 @@ ALLOWED_HOSTS = ["*"]
 CUSTOM_APPS = [
     "auth.user",
     "auth.jwt_token",
+    "apps.posts",
 ]
 
 # Thired party apps

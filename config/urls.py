@@ -25,6 +25,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/', include('auth.user.urls')),
     path('api/', include('auth.jwt_token.urls')),
+    path('api/', include('apps.posts.urls')),
 ]
 
 # Development Mode

@@ -34,6 +34,7 @@ CUSTOM_APPS = [
     "auth.user",
     "auth.jwt_token",
     "apps.posts",
+    "apps.linebot",
 ]
 
 # Thired party apps

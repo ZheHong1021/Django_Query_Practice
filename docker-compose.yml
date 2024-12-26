@@ -1,0 +1,52 @@
+version: '3'
+
+services:
+  nginx:
+    image: nginx:1.21.3
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - static_volume:/app/static
+      - media_volume:/app/media
+    depends_on:
+      - web
+
+  web:
+    build: .
+    command: >
+      sh -c "python manage.py collectstatic --noinput &&
+             python manage.py migrate &&
+             gunicorn config.wsgi:application --bind 0.0.0.0:8000"
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - static_volume:/app/static
+      - media_volume:/app/media
+    expose:
+      - 8000
+    environment:
+      - DJANGO_DB_HOST=db
+      - DJANGO_DB_PORT=3306
+      - DJANGO_DB_NAME=query_practice
+      - DJANGO_DB_USER=myuser
+      - DJANGO_DB_PASSWORD=Ru,6e.4vu4wj/3
+    depends_on:
+      - db
+  db:
+    image: mariadb:10.6
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    environment:
+      - MYSQL_DATABASE=query_practice
+      - MYSQL_USER=myuser
+      - MYSQL_PASSWORD=Ru,6e.4vu4wj/3
+      - MYSQL_ROOT_PASSWORD=Ru,6e.4vu4wj/3
+    ports:
+      - "3306:3306"
+
+volumes:
+  mariadb_data:
+  static_volume:
+  media_volume:

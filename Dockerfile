@@ -14,4 +14,11 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
+# 腳本
+COPY entrypoint.sh .
+RUN chmod +x entrypoint.sh
+
+# 複製專案檔案
 COPY . /app/
+
+ENTRYPOINT ["./entrypoint.sh"]

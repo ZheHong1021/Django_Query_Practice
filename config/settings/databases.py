@@ -1,4 +1,5 @@
 from ..django.base import *
+from decouple import config  # 確保正確導入
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases

@@ -15,12 +15,14 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path, include
+from django.urls import path, include, re_path
 from config.django.base import DEBUG
 from django.conf import settings
 from django.conf.urls.static import static
 import debug_toolbar
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+from core.views import api_404_handler
+
 
 # All
 urlpatterns = [
@@ -33,7 +35,11 @@ urlpatterns = [
     # Swagger-UI
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
     path("api/schema/docs/", SpectacularSwaggerView.as_view(url_name="schema")),
+    
+    re_path(r'^api/.*$', api_404_handler),
 ]
+
+
 
 # Development Mode
 if DEBUG:
@@ -53,6 +59,3 @@ else:
     urlpatterns += [
 
     ]
-
-
-    

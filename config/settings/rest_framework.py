@@ -4,7 +4,7 @@ REST_FRAMEWORK = {
     'DEFAULT_SCHEMA_CLASS': "drf_spectacular.openapi.AutoSchema",
 
     # 客製化 Exception捕捉
-    'EXCEPTION_HANDLER': 'common.exceptions.custom_exception_handler',
+    'EXCEPTION_HANDLER': 'core.exceptions.handler.custom_exception_handler',
 
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication', # 引入 Simple-JWT

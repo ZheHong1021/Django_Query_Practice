@@ -1,10 +1,14 @@
 from config.django.base import SECRET_KEY
+from decouple import config  # 確保正確導入
 
 #region 【Simple-JWT 設定】
 from datetime import timedelta
+ACCESS_TOKEN_LIFETIME = config('JWT_ACCESS_TOKEN_LIFETIME_MINUTES', default=10, cast=int) # 指 Access Token 的靜態有效期限，時效較【短】(通常建議將其設置為幾分鐘到數小時之間)
+REFRESH_TOKEN_LIFETIME = config('JWT_REFRESH_TOKEN_LIFETIME_DAYS', default=3, cast=int) # 指 Refresh Token 的有效期限，時效較【長】: user維持登入狀態的時間(通常建議將其設置為幾天到幾週之間。)
+
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5), # 指 Access Token 的靜態有效期限，時效較【短】(通常建議將其設置為幾分鐘到數小時之間)
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=3), # 指 Refresh Token 的有效期限，時效較【長】: user維持登入狀態的時間(通常建議將其設置為幾天到幾週之間。)
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=ACCESS_TOKEN_LIFETIME), # 指 Access Token 的靜態有效期限，時效較【短】(通常建議將其設置為幾分鐘到數小時之間)
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=REFRESH_TOKEN_LIFETIME), # 指 Refresh Token 的有效期限，時效較【長】: user維持登入狀態的時間(通常建議將其設置為幾天到幾週之間。)
     "ROTATE_REFRESH_TOKENS": True, # (預設False):更新Token時，只會更新 access token。如果設為 True，則連 refresh token也會跟著更新
     "BLACKLIST_AFTER_ROTATION": True, # (預設False):設為True時，token更新之後，舊的 refresh 和 access token 都失去權限，這也相對安全
     "UPDATE_LAST_LOGIN": True, # (預設False):設為True時，每次登入時，都會更新 user 的 last_login 欄位

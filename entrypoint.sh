@@ -16,4 +16,10 @@ python manage.py migrate
 
 # Start server
 echo "Starting server"
-gunicorn config.wsgi:application --bind 0.0.0.0:8000
+if [ "$DJANGO_DEBUG" = "True" ]; then
+    echo "Using Django development server"
+    python manage.py runserver 0.0.0.0:8000
+else
+    echo "Using Gunicorn"
+    gunicorn config.wsgi:application --bind 0.0.0.0:8000
+fi

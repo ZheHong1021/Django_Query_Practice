@@ -15,6 +15,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_active = models.BooleanField(default=True)
     date_joined = models.DateTimeField(default=timezone.now)
 
+    first_name = models.CharField("名字", max_length=30, blank=True, null=False)
+    last_name = models.CharField("姓氏", max_length=30, blank=True, null=True)
+
     USERNAME_FIELD = "username"
     REQUIRED_FIELDS = []
 

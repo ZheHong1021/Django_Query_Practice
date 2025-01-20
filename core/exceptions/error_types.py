@@ -2,6 +2,7 @@ from django.utils.translation import gettext_lazy as _
 
 ERROR_TYPE_MESSAGES = {
     # DRF 內建的錯誤類型
+    'InvalidToken': _('無效的Token，請重新登入'),
     'ValidationError': _('資料驗證失敗'),
     'NotAuthenticated': _('請先進行登入'),
     'AuthenticationFailed': _('身份驗證失敗'),

@@ -1,7 +1,7 @@
 from rest_framework import viewsets
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from common.pagination import CustomPageNumberPagination
 
 from .models import User
@@ -10,6 +10,9 @@ from .filters import UserFilter
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes, OpenApiResponse, OpenApiExample
 
 from common.views import PermissionMixin, SwaggerSchemaMixin
+
+from django.db.models import Q, F, Value
+from django.db.models.functions import Concat
 
 
 @extend_schema(
@@ -41,3 +44,12 @@ class UserViewSet(PermissionMixin, SwaggerSchemaMixin, viewsets.ModelViewSet):
         user = serializer.save()
         user.set_password("sr2024")
         serializer.save()
+    
+    def get_queryset(self):
+        qs = super().get_queryset()
+
+        qs = qs.annotate(
+            fullname=Concat('last_name', 'first_name') # 全名
+        )
+
+        return qs

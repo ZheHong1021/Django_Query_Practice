@@ -1,8 +1,10 @@
 from rest_framework import serializers
 from .models import User
 from rest_framework.validators import UniqueValidator
+from .models import GENDER_CHOICES
+from .utils.serializers import UserBaseSerializer
 
-class UserSerializer(serializers.ModelSerializer):
+class UserSerializer(UserBaseSerializer):
     username = serializers.CharField( # 帳號
         label='帳號', # 欄位名稱
         help_text="帳號 (長度為 4-20 個字元)",
@@ -42,6 +44,27 @@ class UserSerializer(serializers.ModelSerializer):
         },
         required=False # 非必填
     )
+    phone = serializers.CharField( # 手機號碼
+        label='手機號碼', # 欄位名稱
+        help_text="手機號碼 (長度為 8-15 個字元)",
+        min_length=10, # 最小長度
+        max_length=10, # 最大長度
+        error_messages={
+            'min_length': '手機號碼長度只能為 10碼',
+            'max_length': '手機號碼長度只能為 10碼',
+        },
+        required=False # 非必填
+    )
+    gender = serializers.ChoiceField( # 性別
+        label='性別', # 欄位名稱
+        choices=GENDER_CHOICES, # 選項
+        help_text="性別",
+        error_messages={
+            'invalid_choice': '無效的選擇', # 無效選擇
+        },
+        required=False # 必填
+    )
+
     groups = serializers.SlugRelatedField( # 群組
         many=True, read_only=True, 
         slug_field='name' # 顯示群組名稱

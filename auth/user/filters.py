@@ -1,7 +1,13 @@
 from django_filters import rest_framework as filters
 from .models import User
+from common.filters import SearchFilter, IDsFilter
+from django.db.models import Q
 
-class UserFilter(filters.FilterSet):
+class UserFilter(SearchFilter, IDsFilter):
     class Meta:
         model = User
-        fields = '__all__'
+        fields = [
+            'username',
+            'is_staff',
+            'is_active',
+        ]

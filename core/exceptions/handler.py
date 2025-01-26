@@ -4,6 +4,7 @@ from rest_framework import status
 from rest_framework.exceptions import APIException
 from datetime import datetime
 from .error_types import ERROR_TYPE_MESSAGES
+from django.http import Http404
 from rest_framework.exceptions import (
     APIException,
     ValidationError,
@@ -28,26 +29,10 @@ def custom_exception_handler(exc, context):
         'detail': {
             'timestamp': datetime.now(), # 錯誤時間
             'errors': [], # 錯誤訊息
+            'path': context['request'].path # 錯誤路徑
         }
     }
 
-
-    # 處理 Method Not Allowed (405)
-    if isinstance(exc, MethodNotAllowed):
-        error_response.update({
-            'status_code': status.HTTP_405_METHOD_NOT_ALLOWED,
-            'message': f"方法 {context['request'].method} 不允許",
-            'detail': {
-                'timestamp': datetime.now(),
-                'errors': [{
-                    'field': 'method',
-                    'message': f'該端點不支援 {context["request"].method} 方法'
-                }],
-                'path': context['request'].path
-            }
-        })
-        return Response(error_response, status=status.HTTP_405_METHOD_NOT_ALLOWED)
-    
     # 從 ERROR_TYPE_MESSAGES 取得對應的錯誤訊息
     error_type = exc.__class__.__name__
     error_response['message'] = ERROR_TYPE_MESSAGES.get(
@@ -58,6 +43,25 @@ def custom_exception_handler(exc, context):
     # 如果 response 不是 None (代表有錯誤)
     if response is not None:
         error_response['status_code'] = response.status_code # 錯誤狀態碼
+
+        # 處理 Method Not Allowed (405)
+        if isinstance(exc, MethodNotAllowed):
+            error_response['message'] = ERROR_TYPE_MESSAGES['MethodNotAllowed'].format(context['request'].method)
+            error_response['errors'] = [{ # 錯誤訊息
+                'field': 'method',
+                'message': str(exc)
+            }],
+            return Response(error_response, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+        # 處理 Not Found (404)
+        if isinstance(exc, Http404):
+            error_response['message'] = ERROR_TYPE_MESSAGES.get('Http404', '找不到指定的資源')
+            error_response['errors'] = [{ # 錯誤訊息
+                'field': 'id',
+                'message': str(exc)
+            }]
+            return Response(error_response, status=status.HTTP_404_NOT_FOUND)
+
         # 定義錯誤訊息
         if isinstance(exc.detail, dict):
             errors = [

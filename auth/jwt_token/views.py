@@ -16,6 +16,7 @@ from .serializers import CustomTokenObtainPairSerializer
 
 from drf_spectacular.utils import extend_schema_view
 from drf_spectacular.utils import extend_schema, OpenApiTypes, OpenApiResponse
+from rest_framework_simplejwt.exceptions import TokenError
 
 #region 自訂 TokenObtainPairView (Login時將會取得 TOKEN)
 @extend_schema_view(
@@ -102,7 +103,8 @@ class LogoutView(APIView):
             return Response({
                 "message": "Logged out successfully"
             }, status=200)
+        except TokenError:
+            # Token 過期或無效時仍返回成功
+            return Response({"message": "Logged out successfully"}, status=200)
         except Exception as e:
-            return Response({
-                "error": str(e)
-            }, status=400)
+            return Response({"error": str(e)}, status=400)

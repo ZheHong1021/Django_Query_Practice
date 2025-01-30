@@ -31,10 +31,10 @@ ALLOWED_HOSTS = ["*"]
 
 # Application definition
 CUSTOM_APPS = [
-    "auth.user",
-    "auth.group",
-    "auth.permission",
-    "auth.jwt_token",
+    "apps.system.user",
+    "apps.system.group",
+    "apps.system.permission",
+    "apps.auth.jwt_token",
     "apps.posts",
 
     "core",

@@ -27,8 +27,10 @@ from core.views import api_404_handler
 # All
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('auth.user.urls')),
-    path('api/', include('auth.jwt_token.urls')),
+    path('api/', include('apps.system.user.urls')),
+    path("api/", include('apps.system.group.urls')),
+    path("api/", include('apps.system.permission.urls')),
+    path('api/', include('apps.auth.jwt_token.urls')),
     path('api/', include('apps.posts.urls')),
 
 

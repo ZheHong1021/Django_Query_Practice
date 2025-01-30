@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import Group
-from auth.group.models import GroupProfile  # 請替換 your_app 為你的 app 名稱
+from apps.system.group.models import GroupProfile  # 請替換 your_app 為你的 app 名稱
 
 class Command(BaseCommand):
     help = '建立預設的群組角色：系統管理員(admin)和一般管理員(manager)'

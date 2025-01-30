@@ -95,7 +95,10 @@ class UserViewSet(PermissionMixin, SwaggerSchemaMixin, viewsets.ModelViewSet):
 
     def _handle_current_get(self, request):
         """處理獲取當前用戶資訊"""
-        serializer = self.get_serializer(request.user)
+        user = self.get_queryset().annotate(
+            fullname=Concat('last_name', 'first_name')
+        ).get(id=request.user.id)
+        serializer = self.get_serializer(user)
         return Response(serializer.data)
 
     def _handle_current_update(self, request):

@@ -103,6 +103,7 @@ class UserViewSet(PermissionMixin, SwaggerSchemaMixin, viewsets.ModelViewSet):
         return Response(serializer.data)
 
     def _handle_current_update(self, request):
+        print("😍😍😍😍")
         """處理更新當前用戶資訊"""
         serializer = self.get_serializer(
             request.user,
@@ -115,6 +116,9 @@ class UserViewSet(PermissionMixin, SwaggerSchemaMixin, viewsets.ModelViewSet):
                 serializer.errors,
                 status=status.HTTP_400_BAD_REQUEST
             )
+        
+        # 保存更新
+        serializer.save()
         return Response(serializer.data)
     #endregion
 

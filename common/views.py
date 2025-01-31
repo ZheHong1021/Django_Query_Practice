@@ -4,7 +4,7 @@ from rest_framework import serializers, viewsets
 # [創建時] 儲存使用者ID
 class CreateWithUserMixin:
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        serializer.save(created_by_user=self.request.user)
 
 # [修改時] 儲存使用者ID
 class UpdateWithUserMixin:

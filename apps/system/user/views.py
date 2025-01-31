@@ -4,14 +4,21 @@ from rest_framework import status
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from common.pagination import CustomPageNumberPagination
+from common.views import CreateWithUserMixin, UpdateWithUserMixin, PermissionMixin
 from rest_framework.exceptions import ValidationError
 
-from .models import User
+from .models import \
+    User, \
+    UserDeactivateLog
 from .serializers import \
     UserSerializer, \
     UserCurrentSerializer, \
-    ChangePasswordSerializer
-from .filters import UserFilter
+    ChangePasswordSerializer, \
+    UserDeactivationSerializer, \
+    UserDeactivateLogSerializer
+from .filters import \
+    UserFilter, \
+    UserDeactivateLogFilter
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes, OpenApiResponse, OpenApiExample
 
 from common.views import PermissionMixin, SwaggerSchemaMixin
@@ -43,6 +50,9 @@ class UserViewSet(PermissionMixin, SwaggerSchemaMixin, viewsets.ModelViewSet):
         # 修改密碼
         elif self.action == 'change_password':
             return ChangePasswordSerializer
+        # 註銷使用者
+        elif self.action == 'deactivate':
+            return UserDeactivationSerializer
         return super().get_serializer_class()
 
     def perform_create(self, serializer):
@@ -103,7 +113,6 @@ class UserViewSet(PermissionMixin, SwaggerSchemaMixin, viewsets.ModelViewSet):
         return Response(serializer.data)
 
     def _handle_current_update(self, request):
-        print("😍😍😍😍")
         """處理更新當前用戶資訊"""
         serializer = self.get_serializer(
             request.user,
@@ -172,3 +181,66 @@ class UserViewSet(PermissionMixin, SwaggerSchemaMixin, viewsets.ModelViewSet):
         })
       
     #endregion
+
+    @extend_schema(
+        summary="註銷使用者",
+        description="將指定使用者設為不可用",
+        request={
+            'multipart/form-data': UserDeactivationSerializer,
+        },
+        responses={
+            200: OpenApiResponse(description='使用者successfully註銷'),
+            400: OpenApiResponse(description='無效的請求')
+        }
+    )
+    @action(
+        detail=True,  # 需要指定用戶ID
+        methods=['PATCH'],
+        url_path='deactivate',
+        permission_classes=[IsAdminUser],  # 只有管理員可以註銷
+        serializer_class=UserDeactivationSerializer  # 明確指定序列化器
+    )
+    def deactivate(self, request, pk=None):
+        """
+        註銷指定的使用者
+        """
+        user = self.get_object()
+        
+        serializer = self.get_serializer(
+            user, 
+            data={
+                'is_active': False,
+                'reason': request.data.get('reason', None),
+                'deactivate_date': request.data.get('deactivate_date', None) 
+            }, 
+            partial=True
+        )
+        serializer.is_valid(raise_exception=True)
+        
+        # 如果有其他錯誤，也使用 raise
+        try:
+            serializer.save()
+        except Exception as e:
+            print("😍😍😍")
+            print(e)
+            raise ValidationError(str(e))
+
+        return Response({
+            "message": "註銷成功",
+            "status": "success"
+        })
+
+
+
+@extend_schema(
+    tags=['系統管理 - 用戶註銷紀錄'],
+    request={
+        'multipart/form-data': UserDeactivateLogSerializer,
+    },
+)
+class UserDeactivateLogViewSet(PermissionMixin, SwaggerSchemaMixin, CreateWithUserMixin, UpdateWithUserMixin, viewsets.ModelViewSet):
+    queryset = UserDeactivateLog.objects.all()
+    serializer_class = UserDeactivateLogSerializer
+    permission_classes = [IsAuthenticated] # 需要驗證
+    filterset_class = UserDeactivateLogFilter # 篩選
+    pagination_class = CustomPageNumberPagination # 分頁

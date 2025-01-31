@@ -1,10 +1,11 @@
 from rest_framework import serializers
-from .models import User
+from .models import User, UserDeactivateLog
 from rest_framework.validators import UniqueValidator
 from .utils.serializers import UserBaseSerializer, UserFieldSerializer
 from django.contrib.auth.models import Group
 from apps.system.group.serializers import GroupSerializer
 from rest_framework.exceptions import ValidationError
+from django.utils import timezone
 
 class UserSerializer(UserFieldSerializer):
     username = serializers.CharField( # 帳號
@@ -46,7 +47,7 @@ class UserSerializer(UserFieldSerializer):
     class Meta:
         model = User
         exclude = ('password', ) # 排除密碼
-        read_only_fields = ['id', 'created_at', 'updated_at', 'date_joined', 'last_login', 'is_superuser']
+        read_only_fields = ['id', 'created_at', 'updated_at', 'date_joined', 'last_login', 'is_superuser', 'is_staff', 'is_active', 'user_permissions']
 
 
     # 修改用戶
@@ -72,6 +73,65 @@ class UserCurrentSerializer(UserFieldSerializer):
         # 只允許以下字段更新
         fields = ('id', 'username', 'first_name', 'last_name', 'phone', 'gender')
         read_only_fields = ('id', 'username')
+
+class UserDeactivationSerializer(serializers.ModelSerializer):
+    reason = serializers.CharField(
+        label='註銷原因', # 欄位名稱
+        help_text="註銷原因 (長度為 4-100 個字元)",
+        write_only=True,  # 只用於寫入，不顯示在回傳資料中
+        required=True,   # 非必填
+        min_length=4, # 最小長度
+        max_length=100, # 最大長度
+        error_messages={
+            'required': '請輸入註銷原因', # 必填
+            'min_length': '註銷原因長度需大於 4', # 長度需大於 4
+            'max_length': '註銷原因長度需小於 100', # 長度需小於 100
+        }
+    )
+
+    deactivate_date = serializers.DateField(
+        label='註銷日期', # 欄位名稱
+        help_text="註銷日期",
+        write_only=True,  # 只用於寫入，不顯示在回傳資料中
+        required=False,   # 非必填
+    )
+
+    def validate_deactivate_date(self, value):
+        """驗證註銷日期"""
+        if value is not None and value > timezone.now().date():
+            raise ValidationError("註銷日期不能超過今天")
+        return value
+    
+    def validate(self, attrs):
+        # 如果 is_active 原本就已經為 False，則不允許註銷
+        if self.instance.is_active is False:
+            raise ValidationError("用戶已經註銷，無法再次註銷")
+
+        return super().validate(attrs)
+
+    """用於用戶用於註銷的序列化器"""
+    class Meta:
+        model = User
+        # 只允許以下字段更新
+        fields = ('id', 'username', 'is_active', 'reason', 'deactivate_date')
+        read_only_fields = ('id', 'username')
+    
+    def update(self, instance, validated_data):
+        # 從 validated_data 中取出 reason（如果有的話）
+        reason = validated_data.pop('reason', '')
+        deactivate_date = validated_data.pop('deactivate_date', None)
+
+        # 如果傳入 is_active 為 False，則進行註銷
+        if validated_data.get('is_active') is False:
+            # 創建註銷紀錄
+            UserDeactivateLog.objects.create(
+                user=instance,
+                reason=reason,
+                deactivate_date=deactivate_date,
+                created_by_user=self.context.get('request').user
+            )
+        
+        return super().update(instance, validated_data)
 
 
 # 修改密碼序列化器
@@ -133,3 +193,19 @@ class ChangePasswordSerializer(serializers.Serializer):
         user.set_password(password)
         user.save()
         return user
+
+
+
+# 使用者註銷紀錄
+class UserDeactivateLogSerializer(serializers.ModelSerializer):
+    user = UserCurrentSerializer( # 被註銷的使用者
+        read_only=True
+    )
+    created_by_user = UserCurrentSerializer( # 註銷者
+        read_only=True
+    )
+
+    class Meta:
+        model = UserDeactivateLog
+        fields = '__all__'
+        read_only_fields = ['id', 'created_at', 'updated_at', 'created_by_user']

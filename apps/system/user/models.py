@@ -4,6 +4,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 import uuid
 from .managers import CustomUserManager
+from common.models import TimeStampedModel, CreatedByModel, UpdatedByModel
 
 GENDER_CHOICES = (
     ('M', _('男性')),
@@ -43,3 +44,23 @@ class User(AbstractBaseUser, PermissionsMixin):
         permissions = [
             ("export_user", "匯出使用者"),
         ]
+
+
+class UserDeactivateLog(TimeStampedModel, CreatedByModel, UpdatedByModel):
+    user = models.ForeignKey( # 被註銷的使用者
+        User, 
+        on_delete=models.CASCADE, 
+        related_name='deactivate_logs'
+    )
+    deactivate_date = models.DateField("註銷日期", blank=True, default=timezone.now)    
+    reason = models.TextField("註銷原因", blank=True, null=True)
+ 
+
+    def __str__(self):
+        return f"{self.user.username} deactivated at {self.deactivate_date}"
+
+    class Meta:
+        verbose_name = '使用者註銷紀錄'
+        verbose_name_plural = '使用者註銷紀錄'
+        ordering = ['-created_at']
+        db_table = "user_deactivate_log"

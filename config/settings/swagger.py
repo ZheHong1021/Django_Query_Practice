@@ -27,6 +27,7 @@ SPECTACULAR_SETTINGS = {
     'TAGS': [  # 定義標籤
         {'name': '權限處理 - JWT', 'description': '處理 [權限處理 - JWT] 相關數據'},
         {'name': '系統管理 - 用戶', 'description': '處理 [系統管理 - 用戶] 相關數據'},
+        {'name': '系統管理 - 用戶註銷紀錄', 'description': '處理 [系統管理 - 用戶註銷紀錄] 相關數據'},
         {'name': '系統管理 - 角色', 'description': '處理 [系統管理 - 角色] 相關數據'},
         {'name': '系統管理 - 權限', 'description': '處理 [系統管理 - 權限] 相關數據'},
         {'name': '貼文', 'description': '處理 [貼文] 相關數據'},

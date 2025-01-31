@@ -6,6 +6,7 @@ from .views import *
 
 router = DefaultRouter()
 router.register(r'users', UserViewSet, basename='user')
+router.register(r'user/deactivate-logs', UserDeactivateLogViewSet, basename='user-deactivation-log')
 
 
 urlpatterns = [

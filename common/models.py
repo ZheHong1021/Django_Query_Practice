@@ -1,5 +1,4 @@
 from django.db import models
-from apps.system.user.models import User
 from django.utils import timezone
 from .managers import SoftDeleteManager, AlreadySoftDeleteManager
 
@@ -15,10 +14,23 @@ class TimeStampedModel(models.Model):
 
 # 創建可以記錄是誰創建的 Abstract Model
 class CreatedByModel(models.Model):
-    created_by = models.ForeignKey(
-        User, 
+    created_by_user = models.ForeignKey(
+        "user.User", 
         on_delete=models.CASCADE, 
-        related_name="%(class)s_created_by",
+        related_name="%(class)s_created_by_user",
+        blank=True,
+        null=True
+    )
+
+    class Meta:
+        abstract = True
+
+# 創建可以記錄是誰修改的 Abstract Model
+class UpdatedByModel(models.Model):
+    updated_by_user = models.ForeignKey(
+        "user.User", 
+        on_delete=models.CASCADE, 
+        related_name="%(class)s_updated_by_user",
         blank=True,
         null=True
     )
@@ -40,7 +52,7 @@ class SoftDeleteModel(models.Model):
     is_deleted = models.BooleanField(default=False)
     deleted_at = models.DateTimeField(null=True, blank=True, default=None)
     deleted_by_user = models.ForeignKey(
-        User,
+        "user.User",
         related_name='deleted_%(class)s',
         on_delete=models.CASCADE,
         null=True, blank=True, default=None

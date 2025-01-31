@@ -12,7 +12,7 @@ from rest_framework_simplejwt.serializers import (
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
-from .serializers import CustomTokenObtainPairSerializer
+from .serializers import MyTokenObtainPairSerializer
 
 from drf_spectacular.utils import extend_schema_view
 from drf_spectacular.utils import extend_schema, OpenApiTypes, OpenApiResponse
@@ -25,7 +25,7 @@ from rest_framework_simplejwt.exceptions import TokenError
         summary='登入取得Token',
         description='輸入帳號密碼後取得Token',
         request={
-            'multipart/form-data': CustomTokenObtainPairSerializer
+            'multipart/form-data': MyTokenObtainPairSerializer
         },
         responses={
             200: OpenApiResponse(response=OpenApiTypes.OBJECT, description="成功登入並取得Token"),
@@ -34,7 +34,10 @@ from rest_framework_simplejwt.exceptions import TokenError
     ),
 )
 class CustomTokenObtainPairView(TokenObtainPairView):
-    serializer_class = CustomTokenObtainPairSerializer
+    serializer_class = MyTokenObtainPairSerializer
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        return response
 #endregion
 
 #region (驗證Token)

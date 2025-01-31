@@ -17,10 +17,16 @@ from rest_framework.permissions import IsAuthenticated
 class PermissionMixin:
     # 需要驗證
     def get_permissions(self):
-        # 確認用戶是否有權限
+        # 定義不需要特殊權限檢查的 actions
+        skip_permission_actions = ['current', 'change_password']
+        
+        # 如果是特殊 action，只檢查基本的認證
+        if self.action in skip_permission_actions:
+            return [IsAuthenticated()]
+            
+        # 原有的權限邏輯
         self.ensure_has_permission()
-
-        action_permission_map = { # Action對應權限
+        action_permission_map = {
             'list': 'view',
             'retrieve': 'view',
             'create': 'add',
@@ -28,10 +34,10 @@ class PermissionMixin:
             'partial_update': 'change',
             'destroy': 'delete'
         }
-
-        action = action_permission_map.get(self.action) # 取得當前的Action
-        codename = self.get_permission_codename() # 取得權限名稱
-        self.required_permission = f'{action}_{codename}' # 組合權限名稱
+        
+        action = action_permission_map.get(self.action)
+        codename = self.get_permission_codename()
+        self.required_permission = f'{action}_{codename}'
         return super().get_permissions()
     
     # 確保用戶有權限

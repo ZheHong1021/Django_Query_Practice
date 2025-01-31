@@ -82,6 +82,7 @@ class UserViewSet(PermissionMixin, SwaggerSchemaMixin, viewsets.ModelViewSet):
         methods=['get', 'put', 'patch'], # 支援的 HTTP 方法
         url_path='current', # 路由名稱
         url_name='current', # 路由別名
+        permission_classes=[IsAuthenticated]  # 明確指定權限
     )
     
     def current(self, request):

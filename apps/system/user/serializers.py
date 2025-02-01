@@ -6,6 +6,8 @@ from django.contrib.auth.models import Group
 from apps.system.group.serializers import GroupSerializer
 from rest_framework.exceptions import ValidationError
 from django.utils import timezone
+from apps.system.menu.models import Menu
+from apps.system.menu.serializers import MenuSerializerWithChildren
 
 class UserSerializer(UserFieldSerializer):
     username = serializers.CharField( # 帳號
@@ -64,15 +66,50 @@ class UserSerializer(UserFieldSerializer):
 
         return super().update(instance, validated_data)
     
-
-
 class UserCurrentSerializer(UserFieldSerializer):
+    groups = GroupSerializer( # 用於顯示的 group
+        many=True, read_only=True
+    )
+
+    menus = serializers.SerializerMethodField() # 用戶菜單
+
     """用於用戶自身資料更新的序列化器"""
     class Meta:
         model = User
         # 只允許以下字段更新
-        fields = ('id', 'username', 'first_name', 'last_name', 'phone', 'gender')
-        read_only_fields = ('id', 'username')
+        fields = ('id', 'username', 'first_name', 'last_name', 'phone', 'gender', 'groups', 'menus')
+        read_only_fields = ('id', 'username', 'groups')
+    
+    def get_menus(self, instance):
+        filters = {}
+        # 如果是超級用戶，則不做任何過濾
+        if instance.is_superuser:
+            group_ids = None
+            pass
+    
+        # 如果是一般用戶，則只顯示啟用的菜單
+        else:
+            group_ids = instance.groups.values_list('id', flat=True)
+            filters['groups__id__in'] = group_ids
+
+        menu_qs = Menu.objects.filter(
+            is_disabled=False,
+            parent__isnull=True,
+            **filters
+        ).select_related('parent')\
+        .prefetch_related('children')\
+        .order_by('priority')
+
+        menus = MenuSerializerWithChildren(
+            menu_qs, # QuerySet
+            many=True, # 是否為多個
+            context={
+                "group_ids": group_ids,
+            }
+        ).data
+
+        """獲取用戶菜單"""
+        return menus
 
 class UserDeactivationSerializer(serializers.ModelSerializer):
     reason = serializers.CharField(

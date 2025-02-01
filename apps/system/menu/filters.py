@@ -12,7 +12,11 @@ class MenuFilter(SearchFilter, SelectFieldsFilter, filters.FilterSet):
     is_menu = filters.BooleanFilter(
         method='filter_is_menu'
     )
-    # 是否為Sidebar菜單
+    # 是否為目錄
+    is_directory = filters.BooleanFilter(
+        field_name='is_directory',
+    )
+    # 是否停用
     is_disabled = filters.BooleanFilter(
         method='filter_is_disabled'
     )

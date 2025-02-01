@@ -44,9 +44,7 @@ class UserViewSet(PermissionMixin, SwaggerSchemaMixin, viewsets.ModelViewSet):
         """根據不同的操作返回不同的序列化器"""
         # 當前用戶
         if self.action == 'current':
-            if self.request.method in ['PUT', 'PATCH']:
-                return UserCurrentSerializer
-            return UserSerializer
+            return UserCurrentSerializer
         # 修改密碼
         elif self.action == 'change_password':
             return ChangePasswordSerializer

@@ -5,6 +5,8 @@ from django.utils.translation import gettext_lazy as _
 import uuid
 from .managers import CustomUserManager
 from common.models import TimeStampedModel, CreatedByModel, UpdatedByModel
+from apps.system.menu.models import Menu
+from apps.system.menu.serializers import MenuSerializerWithChildren
 
 GENDER_CHOICES = (
     ('M', _('男性')),
@@ -64,3 +66,6 @@ class UserDeactivateLog(TimeStampedModel, CreatedByModel, UpdatedByModel):
         verbose_name_plural = '使用者註銷紀錄'
         ordering = ['-created_at']
         db_table = "user_deactivate_log"
+
+    
+    

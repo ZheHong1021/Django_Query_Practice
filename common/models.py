@@ -5,8 +5,8 @@ from .managers import SoftDeleteManager, AlreadySoftDeleteManager
 
 # 創建、修改日期的 Abstract Model
 class TimeStampedModel(models.Model):
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(db_comment="新增時間", auto_now_add=True)
+    updated_at = models.DateTimeField(db_comment="更新時間", auto_now=True)
 
     class Meta:
         abstract = True
@@ -16,6 +16,7 @@ class TimeStampedModel(models.Model):
 class CreatedByModel(models.Model):
     created_by_user = models.ForeignKey(
         "user.User", 
+        db_comment="創建用戶",
         on_delete=models.CASCADE, 
         related_name="%(class)s_created_by_user",
         blank=True,
@@ -29,6 +30,7 @@ class CreatedByModel(models.Model):
 class UpdatedByModel(models.Model):
     updated_by_user = models.ForeignKey(
         "user.User", 
+        db_comment="修改用戶",
         on_delete=models.CASCADE, 
         related_name="%(class)s_updated_by_user",
         blank=True,
@@ -49,10 +51,11 @@ class BaseUUIDModel(models.Model):
 
 # 軟刪除
 class SoftDeleteModel(models.Model):
-    is_deleted = models.BooleanField(default=False)
-    deleted_at = models.DateTimeField(null=True, blank=True, default=None)
+    is_deleted = models.BooleanField(db_comment="是否被軟刪除", default=False)
+    deleted_at = models.DateTimeField(db_comment="刪除時間", null=True, blank=True, default=None)
     deleted_by_user = models.ForeignKey(
         "user.User",
+        db_comment="刪除用戶",
         related_name='deleted_%(class)s',
         on_delete=models.CASCADE,
         null=True, blank=True, default=None

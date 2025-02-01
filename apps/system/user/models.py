@@ -16,17 +16,15 @@ GENDER_CHOICES = (
 class User(AbstractBaseUser, PermissionsMixin):
     # UUID
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    username = models.CharField(max_length=150, unique=True)
-    email = models.EmailField(blank=True, null=True)
-    is_staff = models.BooleanField(default=False)
-    is_active = models.BooleanField(default=True)
-    date_joined = models.DateTimeField(default=timezone.now)
-
-    first_name = models.CharField("名字", max_length=30, blank=True, null=False)
-    last_name = models.CharField("姓氏", max_length=30, blank=True, null=True)
-
-    phone = models.CharField("聯絡電話", max_length=15, blank=True, null=True)
-    gender = models.CharField("性別", max_length=1, choices=GENDER_CHOICES, blank=True, default='N')
+    username = models.CharField(max_length=150, unique=True, db_comment="使用者帳號")
+    email = models.EmailField(blank=True, null=True, db_comment="電子郵件")
+    is_staff = models.BooleanField(default=False, db_comment="是否為管理員")
+    is_active = models.BooleanField(default=True, db_comment="是否啟用")
+    date_joined = models.DateTimeField(default=timezone.now, db_comment="註冊時間")
+    first_name = models.CharField("名字", max_length=30, blank=True, null=False, db_comment="名字")
+    last_name = models.CharField("姓氏", max_length=30, blank=True, null=True, db_comment="姓氏")
+    phone = models.CharField("聯絡電話", max_length=15, blank=True, null=True, db_comment="聯絡電話")
+    gender = models.CharField("性別", max_length=1, choices=GENDER_CHOICES, blank=True, default='N', db_comment="性別")
 
     USERNAME_FIELD = "username"
     REQUIRED_FIELDS = []
@@ -49,11 +47,13 @@ class User(AbstractBaseUser, PermissionsMixin):
 class UserDeactivateLog(TimeStampedModel, CreatedByModel, UpdatedByModel):
     user = models.ForeignKey( # 被註銷的使用者
         User, 
+        verbose_name="使用者",
         on_delete=models.CASCADE, 
-        related_name='deactivate_logs'
+        related_name='deactivate_logs',
+        db_comment="使用者ID",
     )
-    deactivate_date = models.DateField("註銷日期", blank=True, default=timezone.now)    
-    reason = models.TextField("註銷原因", blank=True, null=True)
+    deactivate_date = models.DateField("註銷日期", blank=True, default=timezone.now, db_comment="註銷日期")    
+    reason = models.TextField("註銷原因", blank=True, null=True, db_comment="註銷原因")
  
 
     def __str__(self):

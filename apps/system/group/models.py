@@ -4,8 +4,19 @@ from common.models import BaseUUIDModel, SoftDeleteModel
 from django.db.models import Q
 
 class GroupProfile(BaseUUIDModel, SoftDeleteModel):
-    group = models.OneToOneField(Group, on_delete=models.CASCADE, related_name='profile')
-    name_zh = models.CharField("群組名稱", max_length=100, blank=True, unique=True)
+    group = models.OneToOneField(
+        Group, 
+        on_delete=models.CASCADE, 
+        related_name='profile',
+        db_comment="角色代號"
+    )
+    name_zh = models.CharField(
+        "角色名稱", 
+        max_length=100, 
+        blank=True, 
+        unique=True,
+        db_comment="角色名稱"
+    )
 
     class Meta:
         db_table = "group_profile"

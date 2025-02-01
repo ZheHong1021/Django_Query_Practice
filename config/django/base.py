@@ -34,6 +34,7 @@ CUSTOM_APPS = [
     "apps.system.user",
     "apps.system.group",
     "apps.system.permission",
+    "apps.system.menu",
     "apps.auth.jwt_token",
     "apps.posts",
 

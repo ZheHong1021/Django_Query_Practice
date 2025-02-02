@@ -22,6 +22,10 @@ python manage.py update_all_permissions
 echo "Add Default Group"
 python manage.py create_default_groups
 
+# Add Default Menu
+echo "Add Default Menu"
+python manage.py create_default_menus
+
 # Start server
 echo "Starting server"
 if [ "$DJANGO_DEBUG" = "True" ]; then

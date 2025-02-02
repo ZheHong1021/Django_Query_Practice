@@ -2,12 +2,13 @@ from rest_framework import serializers
 from .models import User, UserDeactivateLog
 from rest_framework.validators import UniqueValidator
 from .utils.serializers import UserBaseSerializer, UserFieldSerializer
-from django.contrib.auth.models import Group
+from django.contrib.auth.models import Group, Permission
 from apps.system.group.serializers import GroupSerializer
 from rest_framework.exceptions import ValidationError
 from django.utils import timezone
 from apps.system.menu.models import Menu
 from apps.system.menu.serializers import MenuSerializerWithChildren
+from apps.system.permission.serializers import PermissionSerializer
 
 class UserSerializer(UserFieldSerializer):
     username = serializers.CharField( # 帳號
@@ -71,15 +72,16 @@ class UserCurrentSerializer(UserFieldSerializer):
         many=True, read_only=True
     )
 
-    menus = serializers.SerializerMethodField() # 用戶菜單
-
     fullname = serializers.SerializerMethodField() # 用戶全名
+    menus = serializers.SerializerMethodField() # 用戶菜單
+    permissions = serializers.SerializerMethodField() # 用戶權限
+
 
     """用於用戶自身資料更新的序列化器"""
     class Meta:
         model = User
         # 只允許以下字段更新
-        fields = ('id', 'username', 'first_name', 'last_name', 'phone', 'gender', 'groups', 'menus', 'date_joined', 'fullname')
+        fields = ('id', 'username', 'first_name', 'last_name', 'phone', 'gender', 'groups', 'menus', 'permissions', 'date_joined', 'fullname')
         read_only_fields = ('id', 'username', 'groups')
 
     # 全名
@@ -117,6 +119,33 @@ class UserCurrentSerializer(UserFieldSerializer):
 
         """獲取用戶菜單"""
         return menus
+    
+
+    # 權限
+    def get_permissions(self, instance):
+        filters = {}
+        # 如果是超級用戶，則不做任何過濾
+        if instance.is_superuser:
+            group_ids = None
+            pass
+    
+        # 如果是一般用戶，則只顯示啟用的權限
+        else:
+            group_ids = instance.groups.values_list('id', flat=True)
+            filters['group__id__in'] = group_ids
+
+        permission_qs = Permission.objects.filter(
+            **filters
+        ).order_by('content_type', 'codename')
+
+        # permissions = PermissionSerializer(
+        #     permission_qs, # QuerySet
+        #     many=True, # 是否為多個
+        # ).data
+
+        """獲取用戶權限"""
+        return permission_qs.values_list('codename', flat=True)
+
 
 class UserDeactivationSerializer(serializers.ModelSerializer):
     reason = serializers.CharField(

@@ -40,7 +40,6 @@ class User(AbstractBaseUser, PermissionsMixin):
         db_table = "user"
         verbose_name = '用戶'  # 這會影響權限名稱
         verbose_name_plural = '用戶列表'
-
         permissions = [
             ("export_user", "匯出使用者"),
         ]

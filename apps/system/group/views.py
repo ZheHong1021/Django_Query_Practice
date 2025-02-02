@@ -8,6 +8,7 @@ from common.pagination import CustomPageNumberPagination
 from common.views import PermissionMixin, SwaggerSchemaMixin
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes, OpenApiResponse
+from apps.system.menu.models import Menu
 
 @extend_schema(
     tags=['系統管理 - 角色'],
@@ -70,6 +71,55 @@ class GroupViewSet(PermissionMixin, SwaggerSchemaMixin, viewsets.ModelViewSet):
             return Response({
                 'message': '權限更新成功',
                 'permissions': list(permissions.values('id', 'name', 'codename'))
+            })
+            
+        except Exception as e:
+            return Response(
+                {'error': str(e)}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+
+    @extend_schema(
+        summary="更新群組菜單",
+        description="更新指定群組的菜單列表",
+        request={"application/json": {
+            "type": "object",
+            "properties": {
+                "permissions": {
+                    "type": "array",
+                    "items": {"type": "integer"},
+                    "description": "菜單ID列表"
+                }
+            }
+        }},
+        responses={
+            200: OpenApiResponse(description="菜單更新成功"),
+            400: OpenApiResponse(description="更新失敗"),
+            404: OpenApiResponse(description="群組不存在")
+        }
+    )
+    @action(detail=True, methods=['patch'])
+    def update_menus(self, request, pk=None):
+        """更新群組菜單"""
+        group = self.get_object()
+        menu_ids = request.data.get('menus', [])
+        
+        try:
+            # 驗證菜單 ID 是否存在
+            menus = Menu.objects.filter(id__in=menu_ids)
+            if len(menus) != len(menu_ids):
+                return Response(
+                    {'error': '某些菜單 ID 不存在'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # 更新菜單
+            group.menus.set(menus)
+            
+            return Response({
+                'message': '菜單更新成功',
+                'menus': list(menus.values('id', 'title', 'path', 'component'))
             })
             
         except Exception as e:

@@ -73,13 +73,20 @@ class UserCurrentSerializer(UserFieldSerializer):
 
     menus = serializers.SerializerMethodField() # 用戶菜單
 
+    fullname = serializers.SerializerMethodField() # 用戶全名
+
     """用於用戶自身資料更新的序列化器"""
     class Meta:
         model = User
         # 只允許以下字段更新
-        fields = ('id', 'username', 'first_name', 'last_name', 'phone', 'gender', 'groups', 'menus')
+        fields = ('id', 'username', 'first_name', 'last_name', 'phone', 'gender', 'groups', 'menus', 'date_joined', 'fullname')
         read_only_fields = ('id', 'username', 'groups')
+
+    # 全名
+    def get_fullname(self, instance):
+        return instance.last_name + instance.first_name
     
+    # 菜單
     def get_menus(self, instance):
         filters = {}
         # 如果是超級用戶，則不做任何過濾

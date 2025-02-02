@@ -44,6 +44,11 @@ class GroupSerializer(serializers.ModelSerializer):
         slug_field='id' # 顯示群組名稱
     )
 
+    menus = serializers.SlugRelatedField( # 群組
+        many=True, read_only=True, 
+        slug_field='id' # 顯示群組名稱
+    )
+
     # # 權限
     # permissions = serializers.CharField(
     #     required=True,

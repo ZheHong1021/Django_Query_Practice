@@ -13,3 +13,6 @@ class Post(TimeStampedModel, CreatedByModel):
     class Meta:
         db_table = "post"
         ordering = ["-created_at"]
+
+        verbose_name = '貼文訊息'  # 這會影響權限名稱
+        verbose_name_plural = '貼文訊息列表'

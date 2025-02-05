@@ -31,9 +31,14 @@ ALLOWED_HOSTS = ["*"]
 
 # Application definition
 CUSTOM_APPS = [
-    "auth.user",
-    "auth.jwt_token",
+    "apps.system.user",
+    "apps.system.group",
+    "apps.system.permission",
+    "apps.system.menu",
+    "apps.auth.jwt_token",
     "apps.posts",
+
+    "core",
 ]
 
 # Thired party apps
@@ -66,6 +71,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'django.middleware.locale.LocaleMiddleware',
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -113,9 +119,9 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'zh-hant' # 繁體中文
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Taipei' # 台北時區
 
 USE_I18N = True
 
@@ -137,6 +143,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # [Custom User Model]
 AUTH_USER_MODEL = "user.User"
+
 
 
 # [settings folder]

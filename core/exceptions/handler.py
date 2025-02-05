@@ -47,16 +47,39 @@ def custom_exception_handler(exc, context):
         # 處理 Method Not Allowed (405)
         if isinstance(exc, MethodNotAllowed):
             error_response['message'] = ERROR_TYPE_MESSAGES['MethodNotAllowed'].format(context['request'].method)
-            error_response['errors'] = [{ # 錯誤訊息
+            error_response['detail']['errors'] = [{ # 錯誤訊息
                 'field': 'method',
                 'message': str(exc)
             }],
             return Response(error_response, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+        
+        # 處理 Authentication Failed (401)
+        if isinstance(exc, AuthenticationFailed):
+            error_response['message'] = ERROR_TYPE_MESSAGES['AuthenticationFailed'] # 錯誤訊息
+
+            # 如果錯誤訊息是字典 (通常是未通過驗證)
+            if isinstance(exc.detail, dict):
+                errors = [
+                    {
+                        'field': field, # 欄位
+                        'message': str(error[0]) if isinstance(error, list) else str(error)
+                    }
+                    for field, error in exc.detail.items()
+                ]
+                error_response['detail']['errors'] = errors
+            # 如果錯誤訊息是字串 (通常是帳號或密碼錯誤)
+            else:
+                error_response['detail']['errors'] = [{ # 錯誤訊息
+                    'field': 'account',
+                    'message': str(exc)
+                }]
+          
+            return Response(error_response, status=status.HTTP_401_UNAUTHORIZED)
 
         # 處理 Not Found (404)
         if isinstance(exc, Http404):
             error_response['message'] = ERROR_TYPE_MESSAGES.get('Http404', '找不到指定的資源')
-            error_response['errors'] = [{ # 錯誤訊息
+            error_response['detail']['errors'] = [{ # 錯誤訊息
                 'field': 'id',
                 'message': str(exc)
             }]

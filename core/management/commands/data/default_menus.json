@@ -1,0 +1,68 @@
+[
+    {
+        "priority": 1,
+        "title": "系統管理",
+        "name": null,
+        "path": null,
+        "component": null,
+        "redirect": "",
+        "is_menu": true,
+        "is_directory": true,
+        "is_disabled": false,
+        "icon": "Settings",
+        "children": [
+            {
+                "children": [],
+                "priority": 1,
+                "title": "用戶管理",
+                "name": "UserManagement",
+                "path": "/system/user",
+                "component": "system/user/UserManagement",
+                "redirect": "",
+                "is_menu": true,
+                "is_directory": false,
+                "is_disabled": false,
+                "icon": "Security"
+            },
+            {
+                "children": [],
+                "priority": 2,
+                "title": "角色管理",
+                "name": "GroupManagement",
+                "path": "/system/group",
+                "component": "system/group/GroupManagement",
+                "redirect": "",
+                "is_menu": true,
+                "is_directory": false,
+                "is_disabled": false,
+                "icon": "Groups"
+            },
+            {
+                "children": [],
+                "priority": 3,
+                "title": "權限管理",
+                "name": "PermissionManagement",
+                "path": "/system/permission",
+                "component": "system/permission/PermissionManagement",
+                "redirect": "",
+                "is_menu": true,
+                "is_directory": false,
+                "is_disabled": false,
+                "icon": "Security"
+            },
+            {
+                "children": [],
+                "priority": 4,
+                "title": "菜單管理",
+                "name": "MenuManagement",
+                "path": "/system/menu",
+                "component": "system/menu/MenuManagement",
+                "redirect": "",
+                "is_menu": true,
+                "is_directory": false,
+                "is_disabled": false,
+                "icon": "List"
+            }
+        ]
+    }
+]

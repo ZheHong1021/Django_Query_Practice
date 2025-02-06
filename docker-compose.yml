@@ -1,6 +1,6 @@
 services:
   nginx:
-    image: nginx:1.21.3
+    build: ./nginx
     restart: always
     ports:
       - "80:80"

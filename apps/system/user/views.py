@@ -23,7 +23,7 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes,
 
 from common.views import PermissionMixin, SwaggerSchemaMixin
 
-from django.db.models import Q, F, Value
+from django.db.models import Q, F, Value, Case, When
 from django.db.models.functions import Concat
 
 
@@ -59,10 +59,12 @@ class UserViewSet(PermissionMixin, SwaggerSchemaMixin, viewsets.ModelViewSet):
         user.save()
     
     def get_queryset(self):
+        # 獲取查詢集
         qs = super().get_queryset()
 
+        # 關聯欄位(全名)
         qs = qs.annotate(
-            fullname=Concat('last_name', 'first_name') # 全名
+            fullname=User.get_fullname_annotation()
         )
 
         return qs
@@ -71,9 +73,6 @@ class UserViewSet(PermissionMixin, SwaggerSchemaMixin, viewsets.ModelViewSet):
     @extend_schema(
         summary="管理當前用戶資訊",
         description="獲取或更新當前登入用戶的資訊",
-        # request={
-        #     'multipart/form-data': UserCurrentSerializer,
-        # },
         request=UserCurrentSerializer,
         responses={
             200: OpenApiResponse(
@@ -105,7 +104,7 @@ class UserViewSet(PermissionMixin, SwaggerSchemaMixin, viewsets.ModelViewSet):
     def _handle_current_get(self, request):
         """處理獲取當前用戶資訊"""
         user = self.get_queryset().annotate(
-            fullname=Concat('last_name', 'first_name')
+            fullname=User.get_fullname_annotation()
         ).get(id=request.user.id)
         serializer = self.get_serializer(user)
         return Response(serializer.data)
@@ -219,7 +218,6 @@ class UserViewSet(PermissionMixin, SwaggerSchemaMixin, viewsets.ModelViewSet):
         try:
             serializer.save()
         except Exception as e:
-            print("😍😍😍")
             print(e)
             raise ValidationError(str(e))
 

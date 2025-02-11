@@ -72,7 +72,9 @@ class UserCurrentSerializer(UserFieldSerializer):
         many=True, read_only=True
     )
 
-    fullname = serializers.SerializerMethodField() # 用戶全名
+    fullname = serializers.CharField(
+        read_only=True
+    )
     menus = serializers.SerializerMethodField() # 用戶菜單
     permissions = serializers.SerializerMethodField() # 用戶權限
 
@@ -84,10 +86,6 @@ class UserCurrentSerializer(UserFieldSerializer):
         fields = ('id', 'username', 'first_name', 'last_name', 'phone', 'gender', 'groups', 'menus', 'permissions', 'date_joined', 'fullname')
         read_only_fields = ('id', 'username', 'groups')
 
-    # 全名
-    def get_fullname(self, instance):
-        return instance.last_name + instance.first_name
-    
     # 菜單
     def get_menus(self, instance):
         filters = {}

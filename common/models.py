@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from .managers import SoftDeleteManager, AlreadySoftDeleteManager
-
+from .mixins import UserFullnameMixin
 
 # 創建、修改日期的 Abstract Model
 class TimeStampedModel(models.Model):
@@ -13,7 +13,7 @@ class TimeStampedModel(models.Model):
 
 
 # 創建可以記錄是誰創建的 Abstract Model
-class CreatedByModel(models.Model):
+class CreatedByModel(UserFullnameMixin, models.Model):
     created_by_user = models.ForeignKey(
         "user.User", 
         db_comment="創建用戶",
@@ -27,7 +27,7 @@ class CreatedByModel(models.Model):
         abstract = True
 
 # 創建可以記錄是誰修改的 Abstract Model
-class UpdatedByModel(models.Model):
+class UpdatedByModel(UserFullnameMixin, models.Model):
     updated_by_user = models.ForeignKey(
         "user.User", 
         db_comment="修改用戶",

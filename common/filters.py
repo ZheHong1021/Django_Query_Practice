@@ -4,7 +4,10 @@ from django.db.models import Q, CharField, TextField
 
 # 透過搜尋內容篩選數據 (?search=)
 class SearchFilter(filters.FilterSet):
-    search = filters.CharFilter(method='filter_search_fields')
+    search = filters.CharFilter(
+        method='filter_search_fields',
+        help_text='搜尋欄位(多個欄位用逗號分隔)',
+    )
 
     class Meta:
         abstract = True
@@ -62,11 +65,13 @@ class SearchFilter(filters.FilterSet):
         return field_object
 
 
-
 # 透過id列表篩選數據 (?ids=<id1>,<id2>)
 class IDsFilter(filters.FilterSet):
     # id列表 (121,131) => 要陣列轉成String
-    ids = filters.BaseInFilter(field_name='id', lookup_expr='in')
+    ids = filters.BaseInFilter(
+        field_name='id', lookup_expr='in',
+        help_text='id列表(多個id用逗號分隔)',
+    )
 
     class Meta:
         abstract = True
@@ -77,7 +82,10 @@ class IDsFilter(filters.FilterSet):
 # 透過搜尋內容篩選數據 (?no_page=)
 class DisabledPaginationFilter(filters.FilterSet):
     # 不使用 Pagination
-    no_page = filters.BooleanFilter(method='filter_no_page')
+    no_page = filters.BooleanFilter(
+        method='filter_no_page',
+        help_text='不使用 Pagination',
+    )
 
     class Meta:
         abstract = True
@@ -90,7 +98,10 @@ class DisabledPaginationFilter(filters.FilterSet):
 
 # 篩選出需要顯示的欄位 (?select=id,name)
 class SelectFieldsFilter(filters.FilterSet):
-    select = filters.CharFilter(method='filter_by_select')
+    select = filters.CharFilter(
+        method='filter_by_select',
+        help_text='篩選需要顯示的欄位(多個欄位用逗號分隔)',
+    )
 
     class Meta:
         abstract = True
@@ -120,6 +131,24 @@ class SelectFieldsFilter(filters.FilterSet):
             or all(field in annotated_fields for field in fields):
             queryset = queryset.values(*fields)
 
-        
-
         return queryset
+    
+
+
+
+class CreatedByFilter(filters.FilterSet):
+    created_by_user_id = filters.CharFilter(
+        field_name='created_by_user',
+        help_text='篩選創建的用戶',
+    )
+    class Meta:
+        abstract = True
+
+
+class UpdatedByFilter(filters.FilterSet):
+    updated_by_user_id = filters.CharFilter(
+        field_name='updated_by_user',
+        help_text='篩選修改的用戶',
+    )
+    class Meta:
+        abstract = True

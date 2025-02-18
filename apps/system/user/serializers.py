@@ -9,6 +9,7 @@ from django.utils import timezone
 from apps.system.menu.models import Menu
 from apps.system.menu.serializers import MenuSerializerWithChildren
 from apps.system.permission.serializers import PermissionSerializer
+from drf_spectacular.utils import extend_schema_field, OpenApiTypes
 
 class UserSerializer(UserFieldSerializer):
     username = serializers.CharField( # 帳號
@@ -87,6 +88,7 @@ class UserCurrentSerializer(UserFieldSerializer):
         read_only_fields = ('id', 'username', 'groups')
 
     # 菜單
+    @extend_schema_field(OpenApiTypes.OBJECT)
     def get_menus(self, instance):
         filters = {}
         # 如果是超級用戶，則不做任何過濾
@@ -120,6 +122,7 @@ class UserCurrentSerializer(UserFieldSerializer):
     
 
     # 權限
+    @extend_schema_field(OpenApiTypes.OBJECT)
     def get_permissions(self, instance):
         filters = {}
         # 如果是超級用戶，則不做任何過濾

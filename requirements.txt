@@ -6,6 +6,8 @@ annotated-types==0.7.0
 asgiref==3.8.1
 async-timeout==5.0.1
 attrs==24.2.0
+boto3==1.36.22
+botocore==1.36.22
 certifi==2024.12.14
 charset-normalizer==3.4.1
 Deprecated==1.2.15
@@ -14,6 +16,7 @@ django-cors-headers==4.6.0
 django-debug-toolbar==4.4.6
 django-extensions==3.2.3
 django-filter==24.3
+django-storages==1.14.5
 djangorestframework==3.15.2
 djangorestframework-simplejwt==5.3.1
 drf-spectacular==0.28.0
@@ -23,6 +26,7 @@ gunicorn==23.0.0
 idna==3.10
 importlib_metadata==8.5.0
 inflection==0.5.1
+jmespath==1.0.1
 jsonschema==4.23.0
 jsonschema-specifications==2024.10.1
 line-bot-sdk==3.14.2
@@ -41,12 +45,13 @@ PyYAML==6.0.2
 referencing==0.35.1
 requests==2.32.3
 rpds-py==0.22.3
+s3transfer==0.11.2
 six==1.17.0
 sqlparse==0.5.3
 typing_extensions==4.12.2
 tzdata==2024.2
 uritemplate==4.1.1
-urllib3==2.3.0
+urllib3==1.26.20
 wrapt==1.17.0
 yarl==1.18.3
 zipp==3.21.0

@@ -50,6 +50,7 @@ THIRD_PARTY_APPS = [
     'drf_spectacular', # Swagger UI
     'rest_framework_simplejwt', # JWT
     'rest_framework_simplejwt.token_blacklist', # JWT黑名單
+    'storages', # AWS S3
 ]
 
 INSTALLED_APPS = [
@@ -154,3 +155,4 @@ from config.settings.rest_framework import *
 from config.settings.jwt import * 
 from config.settings.debug_toolbar import * 
 from config.settings.swagger import *
+from config.settings.storages import *

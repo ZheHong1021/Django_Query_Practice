@@ -7,6 +7,8 @@ from .managers import CustomUserManager
 from common.models import TimeStampedModel, CreatedByModel, UpdatedByModel
 from apps.system.menu.models import Menu
 from apps.system.menu.serializers import MenuSerializerWithChildren
+from django.db.models import CharField, Value, Case, When
+from django.db.models.functions import Concat
 
 GENDER_CHOICES = (
     ('M', _('男性')),
@@ -35,11 +37,30 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.username
+    
+    @property
+    def display_fullname(self):
+        if self.is_superuser: # 如果是超級用戶，直接顯示名字
+            return "系統管理員"
+        return f"{self.last_name}{self.first_name}"
+
+    @classmethod
+    def get_fullname_annotation(cls):
+        return Case(
+            When(
+                is_superuser=True,
+                then=Value('系統管理員')
+            ),
+            default=Concat('last_name', 'first_name')
+        )
 
     class Meta:
         db_table = "user"
         verbose_name = '用戶'  # 這會影響權限名稱
         verbose_name_plural = '用戶列表'
+        indexes = [
+            models.Index(fields=['first_name', 'last_name'])
+        ]
         permissions = [
             ("export_user", "匯出使用者"),
         ]

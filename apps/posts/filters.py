@@ -1,7 +1,14 @@
 from django_filters import rest_framework as filters
-from .models import Post
+from .models import Post, PostImage
+from common.filters import CreatedByFilter, UpdatedByFilter
 
-class PostFilter(filters.FilterSet):
+class PostFilter(CreatedByFilter, UpdatedByFilter):
     class Meta:
         model = Post
-        fields = "__all__"
+        fields = []
+
+class PostImageFilter(CreatedByFilter, UpdatedByFilter):
+    post_id = filters.NumberFilter(field_name='post_id')
+    class Meta:
+        model = PostImage
+        fields = ['post_id']

@@ -6,6 +6,7 @@ from .views import *
 
 router = DefaultRouter()
 router.register(r'posts', PostViewSet, basename='posts')
+router.register(r'post-images', PostImageViewSet, basename='post-images')
 
 
 urlpatterns = [

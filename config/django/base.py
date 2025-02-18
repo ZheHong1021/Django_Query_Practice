@@ -155,4 +155,4 @@ from config.settings.rest_framework import *
 from config.settings.jwt import * 
 from config.settings.debug_toolbar import * 
 from config.settings.swagger import *
-from config.settings.storages import *
+from config.settings.storages import * # 如果有使用AWS S3，請打開這個設定檔(解除註解)

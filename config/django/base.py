@@ -39,6 +39,7 @@ CUSTOM_APPS = [
     "apps.posts",
     "apps.linebot.webhook", # LineBot Webhook
     "apps.linebot.login", # LineBot Login
+    "apps.linebot.lineuser", # LineBot User
     "core",
 ]
 

@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
 
-class LinebotConfig(AppConfig):
+class LinebotLoginConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'apps.linebot'
+    name = 'apps.linebot.login'

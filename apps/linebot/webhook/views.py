@@ -12,6 +12,10 @@ from linebot.models import \
         CarouselTemplate, ImageCarouselTemplate
 from linebot.webhook import SignatureValidator
 from django.views.decorators.csrf import csrf_exempt
+from rest_framework.permissions import IsAdminUser
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
 
 # 讀取環境變數
 line_bot_api = LineBotApi(settings.LINE_CHANNEL_ACCESS_TOKEN)
@@ -39,6 +43,11 @@ def callback(request):
             for event in events:
                 if isinstance(event, MessageEvent):
                     mtext = event.message.text # 使用者傳來的訊息
+                    user_id = event.source.user_id # 使用者的 Line User ID
+                    print("================================")
+                    print("使用者:", user_id)
+                    print("使用者傳來的訊息:", mtext)
+                    print("================================")
                     message = []
 
                     if mtext == '文字':
@@ -71,3 +80,4 @@ def callback(request):
             return HttpResponseBadRequest(f"未預期的錯誤: {e}")
     else:
         return HttpResponse("這是 LINE Bot webhook")
+    

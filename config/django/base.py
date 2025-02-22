@@ -37,7 +37,8 @@ CUSTOM_APPS = [
     "apps.system.menu",
     "apps.auth.jwt_token",
     "apps.posts",
-    "apps.linebot",
+    "apps.linebot.webhook", # LineBot Webhook
+    "apps.linebot.login", # LineBot Login
     "core",
 ]
 

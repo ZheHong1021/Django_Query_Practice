@@ -27,7 +27,10 @@ from core.views import api_404_handler
 # All
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('apps.linebot.urls')),
+
+    path('', include('apps.linebot.webhook.urls')), # LineBot Webhook
+    path('', include('apps.linebot.login.urls')), # LineBot Login
+
     path('api/', include('apps.system.user.urls')),
     path("api/", include('apps.system.group.urls')),
     path("api/", include('apps.system.permission.urls')),

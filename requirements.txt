@@ -29,6 +29,7 @@ inflection==0.5.1
 jmespath==1.0.1
 jsonschema==4.23.0
 jsonschema-specifications==2024.10.1
+line-bot-sdk==3.16.0
 Markdown==3.7
 multidict==6.1.0
 mysqlclient==2.2.6
@@ -50,7 +51,7 @@ sqlparse==0.5.3
 typing_extensions==4.12.2
 tzdata==2024.2
 uritemplate==4.1.1
-urllib3==1.26.20
+urllib3==2.3.0
 wrapt==1.17.0
 yarl==1.18.3
 zipp==3.21.0

@@ -33,6 +33,7 @@ SPECTACULAR_SETTINGS = {
         {'name': '系統管理 - 菜單', 'description': '處理 [系統管理 - 菜單] 相關數據'},
         {'name': '貼文', 'description': '處理 [貼文] 相關數據'},
         {'name': '貼文圖片', 'description': '處理 [貼文圖片] 相關數據'},
+        {'name': 'Line服務 - 用戶', 'description': '處理 [Line服務 - 用戶] 相關數據'},
     ],
 
 

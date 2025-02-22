@@ -37,7 +37,7 @@ CUSTOM_APPS = [
     "apps.system.menu",
     "apps.auth.jwt_token",
     "apps.posts",
-
+    "apps.linebot",
     "core",
 ]
 
@@ -156,3 +156,4 @@ from config.settings.jwt import *
 from config.settings.debug_toolbar import * 
 from config.settings.swagger import *
 from config.settings.storages import * # 如果有使用AWS S3，請打開這個設定檔(解除註解)
+from config.settings.linebot import * # 如果有使用AWS S3，請打開這個設定檔(解除註解)

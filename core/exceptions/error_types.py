@@ -22,6 +22,12 @@ ERROR_TYPE_MESSAGES = {
     'BusinessError': _('業務邏輯錯誤'),
     'ResourceNotFoundError': _('找不到請求的資料'),
     'InvalidOperationError': _('無效的操作'),
+
+
+    # Line Login相關
+    'LineAccountNotFound': _('未找到綁定的 LINE 帳號'),
+    'LineUnbindError': _('解除綁定時發生錯誤'),
+
     
     # 預設錯誤
     'default': _('發生未預期的錯誤')

@@ -7,6 +7,7 @@ from apps.system.group.serializers import GroupSerializer
 from rest_framework.exceptions import ValidationError
 from django.utils import timezone
 from apps.system.menu.models import Menu
+from apps.linebot.lineuser.serializers import LineUserSerializer
 from apps.system.menu.serializers import MenuSerializerWithChildren
 from apps.system.permission.serializers import PermissionSerializer
 from drf_spectacular.utils import extend_schema_field, OpenApiTypes
@@ -69,6 +70,10 @@ class UserSerializer(UserFieldSerializer):
         return super().update(instance, validated_data)
     
 class UserCurrentSerializer(UserFieldSerializer):
+    line_user = LineUserSerializer( # LINE 用戶
+        read_only=True, required=False
+    )
+    
     groups = GroupSerializer( # 用於顯示的 group
         many=True, read_only=True
     )
@@ -84,7 +89,9 @@ class UserCurrentSerializer(UserFieldSerializer):
     class Meta:
         model = User
         # 只允許以下字段更新
-        fields = ('id', 'username', 'first_name', 'last_name', 'phone', 'gender', 'groups', 'menus', 'permissions', 'date_joined', 'fullname')
+        fields = ('id', 'username', 'first_name', 'last_name', 'phone', 'gender', 'groups', 'menus', 'permissions', 'date_joined', 
+                    'fullname',
+                    'line_user')
         read_only_fields = ('id', 'username', 'groups')
 
     # 菜單

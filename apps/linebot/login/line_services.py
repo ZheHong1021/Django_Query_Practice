@@ -12,6 +12,8 @@ from apps.system.user.models import User
 from apps.linebot.lineuser.models import LineUser
 from django.contrib.auth import login
 from rest_framework_simplejwt.tokens import RefreshToken
+from .exceptions import LineAccountNotFound, LineUnbindError
+from rest_framework.exceptions import NotAuthenticated
 
 class LineLoginService:
     """處理 LINE Login 相關的服務邏輯"""
@@ -119,46 +121,50 @@ class LineLoginService:
         
         return None
     
-
-    def _create_or_get_django_user(self, user_data):
-        """創建或獲取 Django User"""
-        if not user_data.get('email'):
-            return None
-            
-        try:
-            # 嘗試通過 email 找到現有用戶
-            user = User.objects.get(email=user_data['email'])
-        except User.DoesNotExist:
-            # 用戶帳號
-            username = f"line_{user_data['id']}"
-
-            # 使用預設密碼創建用戶
-            default_password = getattr(settings, 'DEFAULT_USER_PASSWORD', 'sr2024')
-
-            # 新增用戶
-            user = User.objects.create_user(
-                username=username,
-                email=user_data['email'],
-                first_name=user_data.get('name', ''),
-                password=default_password,  # 使用預設密碼
-            )
-            
-        return user
+    def _get_user_info(self, token_data):
+        """從 token 數據中獲取用戶信息
+        嘗試從 ID Token 或 API 獲取
+        """
+        user_data = None
+        
+        # 嘗試從 ID Token 中獲取用戶信息
+        if token_data.get('id_token'):
+            user_data = self._get_user_info_from_id_token(token_data['id_token'])
+        
+        # 如果 ID Token 無效，則使用 API 獲取用戶信息
+        if not user_data and token_data.get('access_token'):
+            user_data = self._get_user_info_from_api(token_data['access_token'])
+        
+        return user_data
     
-    def save_user_data(self, user_data, token_data):
-        """儲存或更新用戶資料"""
+    def _update_line_user(self, line_user, user_data, token_data):
+        """更新 LINE 用戶資料"""
         # 計算 token 過期時間
         expires_in = token_data.get('expires_in', 3600)
         token_expiry = timezone.now() + timedelta(seconds=expires_in)
         
-        # 獲取或創建 Django User
-        user = self._create_or_get_django_user(user_data)
+        # 更新資料
+        line_user.display_name = user_data.get('name')
+        line_user.picture_url = user_data.get('picture')
+        line_user.email = user_data.get('email')
+        line_user.access_token = token_data.get('access_token')
+        line_user.token_expires_at = token_expiry
+        line_user.last_login = timezone.now()
+        line_user.save()
         
+        return line_user
+
+    def save_line_user_data(self, user_data, token_data, request=None):
+        """儲存或更新Line用戶的資料"""
+        # 計算 token 過期時間
+        expires_in = token_data.get('expires_in', 3600)
+        token_expiry = timezone.now() + timedelta(seconds=expires_in)
+
         # 更新或創建 LINE User
         line_user, created = LineUser.objects.update_or_create(
             line_id=user_data['id'],
             defaults={
-                'user': user,
+                'user': request.user,
                 'display_name': user_data.get('name'),
                 'picture_url': user_data.get('picture'),
                 'email': user_data.get('email'),
@@ -167,7 +173,7 @@ class LineLoginService:
                 'last_login': timezone.now(),
             }
         )
-        
+
         return line_user, created
 
     def process_login(self, request):
@@ -194,6 +200,8 @@ class LineLoginService:
             
         # 交換 token
         success, token_data = self._exchange_token(code)
+
+        # 如果交換 token 失敗，返回錯誤
         if not success:
             return False, {
                 'success': False,
@@ -201,14 +209,7 @@ class LineLoginService:
             }, status.HTTP_400_BAD_REQUEST
             
         # 獲取用戶信息
-        user_data = None
-        # 嘗試從 ID Token 中獲取用戶信息
-        if token_data.get('id_token'):
-            user_data = self._get_user_info_from_id_token(token_data['id_token'])
-        
-        # 如果 ID Token 無效，則使用 API 獲取用戶信息
-        if not user_data and token_data.get('access_token'):
-            user_data = self._get_user_info_from_api(token_data['access_token'])
+        user_data = self._get_user_info(token_data)
         
         # 如果都還是無法獲取用戶信息，返回錯誤
         if not user_data or not user_data.get('id'):
@@ -217,10 +218,13 @@ class LineLoginService:
                 'error': 'user_data_missing',
                 'message': '無法獲取用戶資料'
             }, status.HTTP_400_BAD_REQUEST
-            
+        
         try:
-            # 儲存用戶資料
-            line_user, created = self.save_user_data(user_data, token_data)
+            # 嘗試找到已綁定的用戶
+            line_user = LineUser.objects.get(line_id=user_data['id'])
+            
+            # 更新 LINE 用戶的資料
+            self._update_line_user(line_user, user_data, token_data)
             
             # 如果有關聯的 Django 用戶，執行登入
             if line_user.user:
@@ -233,11 +237,13 @@ class LineLoginService:
             return True, {
                 'success': True,
                 'user': {
+                    'id': line_user.user.id,
+                    'username': line_user.user.username,
                     'line_id': line_user.user_id,
                     'name': line_user.display_name,
                     'picture': line_user.picture_url,
                     'email': line_user.email,
-                    'is_new_user': created
+                    'is_new_user': False
                 },
                 'tokens': {
                     'access': line_user.access_token,
@@ -245,10 +251,123 @@ class LineLoginService:
                     'expires_in': token_data.get('expires_in', 3600)
                 }
             }, status.HTTP_200_OK
-            
+        
+        except LineUser.DoesNotExist:
+            # LINE 用戶未綁定，返回錯誤
+            return False, {
+                'success': False,
+                'error': 'line_account_not_binded',
+                'message': '此 LINE 帳號尚未綁定到系統用戶，請先登入系統後綁定 LINE 帳號',
+                'line_id': user_data['id']
+            }, status.HTTP_404_NOT_FOUND
+
         except Exception as e:
             return False, {
                 'success': False,
                 'error': 'database_error',
                 'message': f'儲存用戶資料時發生錯誤: {str(e)}'
             }, status.HTTP_500_INTERNAL_SERVER_ERROR
+
+
+    def bind_account(self, request):
+        """將 LINE 帳號綁定到當前用戶"""
+        # 獲取授權參數
+        auth_params = self._get_auth_params(request)
+        # 檢查錯誤
+        if auth_params.get('error'):
+            return False, {
+                'success': False,
+                'error': auth_params['error'],
+                'message': auth_params.get('error_description') or '綁定時發生錯誤'
+            }, status.HTTP_400_BAD_REQUEST
+            
+        # 檢查授權碼
+        code = auth_params.get('code')
+        if not code:
+            return False, {
+                'success': False,
+                'error': 'authorization_code_missing',
+                'message': '未收到授權碼'
+            }, status.HTTP_400_BAD_REQUEST
+            
+        # 交換 token
+        success, token_data = self._exchange_token(code)
+        if not success:
+            return False, {
+                'success': False,
+                **token_data # 包含error、message
+            }, status.HTTP_400_BAD_REQUEST
+
+        
+        # 獲取用戶信息
+        user_data = self._get_user_info(token_data)
+
+        # 如果都還是無法獲取用戶信息，返回錯誤
+        if not user_data or not user_data.get('id'):
+            return False, {
+                'success': False,
+                'error': 'user_data_missing',
+                'message': '無法獲取用戶資料'
+            }, status.HTTP_400_BAD_REQUEST
+        try:
+            # 檢查 LINE 帳號是否已被其他用戶綁定
+            existing_line_user = LineUser.objects.filter(line_id=user_data['id']).first()
+            if existing_line_user and existing_line_user.user_id != request.user.id:
+                return False, {
+                    'success': False,
+                    'error': 'line_account_already_binded',
+                    'message': '此 LINE 帳號已綁定到其他用戶，請使用其他 LINE 帳號'
+                }, status.HTTP_400_BAD_REQUEST
+
+            # 儲存用戶資料
+            line_user, created = self.save_line_user_data(user_data, token_data, request)
+
+            return True, {
+                'success': True,
+                'message': '成功綁定 LINE 帳號',
+                'user': {
+                    'id': request.user.id,
+                    'username': request.user.username,
+                    'line_id': line_user.line_id,
+                    'name': line_user.display_name,
+                    'picture': line_user.picture_url,
+                    'email': line_user.email,
+                    'is_new_binding': created
+                }
+            }, status.HTTP_200_OK
+          
+        except Exception as e:
+            return False, {
+                'success': False,
+                'error': 'database_error',
+                'message': f'綁定 LINE 帳號時發生錯誤: {str(e)}'
+            }, status.HTTP_500_INTERNAL_SERVER_ERROR
+
+
+    def unbind_account(self, request):
+        """解除 LINE 帳號綁定"""
+        user = request.user # 取得當前用戶
+
+        # 檢查是否已登入
+        # 如果用戶未登入，返回錯誤
+        if not user.is_authenticated:
+            raise NotAuthenticated("需要登入才能解除綁定")
+
+        try:
+            # 嘗試刪除用戶的 LINE 綁定
+            line_user = LineUser.objects.get(user=user)
+            line_user.delete()
+
+            # 直接返回成功訊息，不再返回狀態碼
+            return {
+                'success': True,
+                'message': 'LINE 帳號已成功解除綁定'
+            }
+        
+        # 如果用戶未綁定 LINE 帳號，返回錯誤
+        except LineUser.DoesNotExist:
+            raise LineAccountNotFound()
+        
+        # 如果刪除時發生錯誤，返回錯誤
+        except Exception as e:
+            raise LineUnbindError(detail=f"解除綁定時發生錯誤: {str(e)}")

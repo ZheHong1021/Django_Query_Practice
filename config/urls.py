@@ -29,7 +29,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
 
     path('', include('apps.linebot.webhook.urls')), # LineBot Webhook
-    path('', include('apps.linebot.login.urls')), # LineBot Login
+    path('api/auth/line/', include('apps.linebot.login.urls')), # LineBot Login
     path('api/', include('apps.linebot.lineuser.urls')), # LineBot User
 
     path('api/', include('apps.system.user.urls')),

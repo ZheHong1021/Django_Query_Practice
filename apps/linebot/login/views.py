@@ -1,20 +1,154 @@
 # views.py
 from django.conf import settings
+from django.core.cache import cache
+from django.shortcuts import redirect
+from django.utils import timezone
+from decouple import config
+from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework.exceptions import NotAuthenticated
 from rest_framework.response import Response
-from rest_framework import status
-from rest_framework_simplejwt.tokens import RefreshToken
-import uuid
-from .line_services import LineLoginService
-from django.shortcuts import redirect
-from decouple import config
 from urllib.parse import urlencode
-from django.core.cache import cache
-from apps.system.user.models import User
 import json
-from django.utils import timezone
+import traceback
+import uuid
+
+from apps.system.user.models import User
+from .line_services import LineLoginService
+
+class LineAuthParams:
+    """管理 Line 登入參數的類別"""
+    
+    def __init__(self, mode='login', user_id=None):
+        self.state = str(uuid.uuid4()) # CSRF protection
+        self.nonce = str(uuid.uuid4()) # Anti-replay protection
+        self.mode = mode # login or binding
+        self.user_id = user_id # User ID for binding mode
+        self.temp_token = None # Temporary token for frontend redirect
+    
+    # 將狀態和參數存儲在緩存中
+    def store_in_cache(self, timeout=600):
+        """Store state and parameters in cache"""
+        cache_key = f"line_state_{self.state}"
+        cache_data = {
+            'state': self.state,
+            'mode': self.mode,
+            'user_id': self.user_id
+        }
+        cache.set(cache_key, json.dumps(cache_data), timeout)
+    
+    # 生成 Line 登入 URL
+    def generate_login_url(self):
+        """Generate LINE login URL with required parameters"""
+        params = {
+            'response_type': 'code',
+            'client_id': settings.LINE_LOGIN_CHANNEL_ID,
+            'redirect_uri': settings.LINE_LOGIN_CALLBACK_URL,
+            'state': self.state,
+            'scope': 'profile openid email',
+            'nonce': self.nonce
+        }
+        auth_url = 'https://access.line.me/oauth2/v2.1/authorize'
+        return f"{auth_url}?{urlencode(params)}"
+    
+
+    # 從狀態中檢索參數
+    @classmethod
+    def from_state(cls, state):
+        """Retrieve params from cache using state"""
+        cache_key = f"line_state_{state}"
+        cached_data_json = cache.get(cache_key)
+        
+        if not cached_data_json:
+            return None
+            
+        cached_data = json.loads(cached_data_json)
+        auth_params = cls(
+            mode=cached_data.get('mode', 'login'),
+            user_id=cached_data.get('user_id', None)
+        )
+        auth_params.state = cached_data.get('state')
+        
+        # Delete after retrieving (one-time use)
+        cache.delete(cache_key)
+        
+        return auth_params
+    
+    # 生成臨時令牌
+    def generate_temp_token(self):
+        """Generate a temporary token for frontend redirect"""
+        self.temp_token = str(uuid.uuid4())
+        return self.temp_token
+
+class AuthResultHandler:
+    """處理 Line 登入結果的類別"""
+    
+    def __init__(self, frontend_url):
+        self.frontend_url = frontend_url # Frontend URL for redirect
+        self.success = False # Success flag
+        self.data = {} # Response data
+        self.status_code = status.HTTP_400_BAD_REQUEST # Default status code
+        self.mode = 'login' # Default mode (login or binding)
+        self.temp_token = None # Temporary token for frontend redirect
+    
+    def set_error(self, error, message, status_code=status.HTTP_400_BAD_REQUEST):
+        """設置錯誤信息"""
+        self.success = False
+        self.data = {
+            'success': False,
+            'error': error,
+            'message': message,
+            'status_code': status_code,
+            'mode': self.mode  # 儲存模式資訊
+        }
+        self.status_code = status_code
+        return self
+    
+    def set_success(self, data, status_code=status.HTTP_200_OK):
+        """設置成功訊息"""
+        self.success = True
+        self.data = data
+        self.status_code = status_code
+        return self
+    
+    def set_mode(self, mode):
+        """設置身份驗證模式 (login 或 binding)"""
+        self.mode = mode
+        return self
+    
+    def store_result(self, temp_token, timeout=300):
+        """將結果存儲在緩存中"""
+        # 如果未提供臨時令牌，則生成一個
+        if not temp_token:
+            temp_token = str(uuid.uuid4())
+        
+        # 保存臨時令牌以便後續使用
+        self.temp_token = temp_token
+        
+        # 確保數據中包含成功/失敗標記和模式
+        if isinstance(self.data, dict):
+            if 'success' not in self.data:
+                self.data['success'] = self.success
+            if 'mode' not in self.data:
+                self.data['mode'] = self.mode
+
+        cache.set(
+            f"temp_auth_{temp_token}",
+            self.data,
+            timeout=timeout
+        )
+        return self
+    
+    def get_redirect_url(self):
+        """建立重定向 URL"""
+        # 所有情況都使用相同的 URL 結構，只傳遞 temp_token
+        if not self.temp_token:
+            # 首先確保生成臨時令牌並保存結果
+            self.store_result()
+        
+        # Normal case with temp token
+        return f"{self.frontend_url}/auth/line-callback?temp_token={self.temp_token}&mode={self.mode}"
+
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
@@ -33,42 +167,19 @@ def get_line_login_url(request):
             'message': '必須登入才能綁定 LINE 帳號'
         }, status=status.HTTP_401_UNAUTHORIZED)
     
-
-
-    # 生成隨機 state 和 nonce
-    state = str(uuid.uuid4())
-    nonce = str(uuid.uuid4())
+    # 建立類別實例並存儲在緩存中
+    auth_params = LineAuthParams(
+        mode=mode,
+        user_id=str(request.user.id) if request.user.is_authenticated else None
+    )
+    auth_params.store_in_cache()
     
-    # 使用緩存存儲 state (10分鐘過期)
-    # 將模式信息附加到 state
-    cache_key = f"line_state_{state}"
-    cache_data = {
-        'state': state,
-        'mode': mode,
-        'user_id': str(request.user.id) if request.user.is_authenticated else None,
-    }
-    # 使用緩存存儲 state 和模式信息 (10分鐘過期)
-    cache.set(cache_key, json.dumps(cache_data), 600)
-    
-    # LINE Login 參數
-    params = {
-        'response_type': 'code',
-        'client_id': settings.LINE_LOGIN_CHANNEL_ID,
-        'redirect_uri': settings.LINE_LOGIN_CALLBACK_URL,
-        'state': state,
-        'scope': 'profile openid email',
-        'nonce': nonce
-    }
-    
-    # 構建 URL（前端會使用此 URL 導向 LINE Login）
-    auth_url = 'https://access.line.me/oauth2/v2.1/authorize'
-    line_login_url = f"{auth_url}?{urlencode(params)}"
-    
-    # 最終會回傳此 URL
+    # 回傳 LINE Login URL
+    line_login_url = auth_params.generate_login_url()
     return Response({'login_url': line_login_url})
 
 
-@api_view(['GET', 'POST'])  # 同時支持 GET 和 POST 方法
+@api_view(['GET', 'POST'])
 @permission_classes([AllowAny])
 def line_login_callback(request):
     """
@@ -76,102 +187,114 @@ def line_login_callback(request):
     前端從 URL 獲取授權碼後調用此 API
     """
 
-    """處理 LINE Login 的回調"""
+    # 檢查請求方法
     if request.method not in ['GET', 'POST']:
         return Response({
             'success': False,
             'error': 'method_not_allowed',
             'message': f'不支持的方法: {request.method}'
         }, status=status.HTTP_405_METHOD_NOT_ALLOWED)
-        
+    
+    # 獲取前端 URL (.env 中設定)
+    FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
+
+    # 建立結果處理器類別
+    result_handler = AuthResultHandler(FRONTEND_URL)
+    
     try:
         # 驗證 state參數以防止 CSRF 攻擊
         received_state = request.GET.get('state')
         if not received_state:
             print("LINE 回調 - 錯誤: 缺少 state 參數")
-            return Response({
-                'success': False,
-                'error': 'missing_state',
-                'message': '缺少 state 參數'
-            }, status=status.HTTP_400_BAD_REQUEST)
-    
-        # 從緩存中獲取 state 數據
-        cache_key = f"line_state_{received_state}"
-        cached_data_json = cache.get(cache_key)
-
-        if not cached_data_json:
+            return result_handler.set_error(
+                error='missing_state', 
+                message='缺少 state 參數',
+                status_code=status.HTTP_400_BAD_REQUEST
+            ).get_redirect_url()
+        
+        # Retrieve stored parameters
+        auth_params = LineAuthParams.from_state(received_state)
+        if not auth_params:
             print("LINE 回調 - 錯誤: state 參數無效或已過期")
-            return Response({
-                'success': False,
-                'error': 'invalid_state',
-                'message': 'state 參數無效或已過期'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        # 將 JSON 字符串解析為 Python 對象
-        cached_data = json.loads(cached_data_json)
-        stored_state = cached_data.get('state') # 獲取存儲的 state
-        mode = cached_data.get('mode', 'login')  # 獲取模式，默認為 login
-        user_id = cached_data.get('user_id', None)  # 用戶資訊(如果mode=binding)
-
+            return result_handler.set_error(
+                error='invalid_state', 
+                message='state 參數無效或已過期',
+                status_code=status.HTTP_400_BAD_REQUEST
+            ).get_redirect_url()
+            
         # 檢查 state 參數是否匹配
-        if received_state != stored_state:
+        if received_state != auth_params.state:
             print("LINE 回調 - 錯誤: state 參數不匹配")
-            return Response({
-                'success': False,
-                'error': 'invalid_state',
-                'message': 'state 參數不匹配'
-            }, status=status.HTTP_400_BAD_REQUEST)
+            return result_handler.set_error(
+                error='invalid_state', 
+                message='state 參數不匹配',
+                status_code=status.HTTP_400_BAD_REQUEST
+            ).get_redirect_url()
         
-
-        # 使用後刪除(一次性使用)
-        cache.delete(cache_key)
-
-        # 建立 LINE 服務實例
+        # Create LINE service instance
         service = LineLoginService()
-        FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
-
-        # 處理綁定模式
-        if mode == 'binding':
-            return handle_binding_mode(request, user_id, service, FRONTEND_URL)
+        result_handler.set_mode(auth_params.mode)
+        
+        # Generate temporary token for response
+        temp_token = auth_params.generate_temp_token()
+        
+       # 處理綁定模式
+        if auth_params.mode == 'binding':
+            return handle_binding_mode(
+                request, 
+                auth_params.user_id, 
+                service, 
+                temp_token,
+                result_handler
+            )
         # 處理登入模式
-        else:  # mode == 'login'
-            return handle_login_mode(request, service, FRONTEND_URL)
+        else:  # login mode
+            return handle_login_mode(
+                request, 
+                service, 
+                temp_token,
+                result_handler
+            )
             
     except Exception as e:
-        import traceback
+        # 記錄錯誤
         error_traceback = traceback.format_exc()
         print(f"LINE 登入錯誤: {error_traceback}")
         
-        # 嘗試將錯誤信息編碼並傳遞給前端
-        error_message = str(e)
-        encoded_error = urlencode({'error': 'unexpected_error', 'message': error_message})
+        # 為未預期錯誤創建一個臨時令牌
+        temp_token = str(uuid.uuid4())
         
-        # 重定向到前端的錯誤頁面
-        FRONTEND_URL = config('FRONTEND_URL', default='http://localhost:3000')
-        error_redirect_url = f"{FRONTEND_URL}/error?{encoded_error}"
-        return redirect(error_redirect_url)
-        
-    except Exception as e:
-        import traceback
-        print(f"LINE 登入錯誤: {traceback.format_exc()}")
-        
-        return Response({
+        # 保存錯誤信息到緩存
+        error_data = {
             'success': False,
             'error': 'unexpected_error',
-            'message': f'處理登入時發生未預期的錯誤: {str(e)}'
-        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    
+            'message': str(e),
+            'mode': request.GET.get('mode', 'login'),  # 嘗試保留模式
+            'status_code': status.HTTP_500_INTERNAL_SERVER_ERROR
+        }
+        
+        cache.set(
+            f"temp_auth_{temp_token}",
+            error_data,
+            timeout=300  # 5分鐘過期
+        )
+        
+        # 使用簡化的重定向 URL
+        error_redirect_url = f"{FRONTEND_URL}/auth/line-callback?temp_token={temp_token}"
+        return redirect(error_redirect_url)
 
-def handle_binding_mode(request, user_id, service, frontend_url):
+
+def handle_binding_mode(request, user_id, service, temp_token, result_handler):
     """處理 LINE 帳號綁定模式的邏輯"""
     # 檢查是否提供了用戶ID
     if not user_id:
         print("LINE 回調 - 錯誤: 綁定模式下缺少用戶ID")
-        return Response({
-            'success': False,
-            'error': 'missing_user_id',
-            'message': '無法識別用戶身份，請重新登入後再嘗試綁定'
-        }, status=status.HTTP_400_BAD_REQUEST)
+        result_handler.set_error(
+            error='missing_user_id',
+            message='無法識別用戶身份，請重新登入後再嘗試綁定',
+            status_code=status.HTTP_400_BAD_REQUEST
+        )
+        return redirect(result_handler.get_redirect_url())
             
     try:
         # 嘗試獲取用戶
@@ -184,101 +307,97 @@ def handle_binding_mode(request, user_id, service, frontend_url):
         
         # 檢查綁定結果
         if not success:
-            error_params = {
-                'error': response_data.get('error', 'binding_failed'),
-                'message': response_data.get('message', '綁定失敗')
-            }
-            encoded_error = urlencode(error_params)
-            
-            # 重定向到前端的錯誤頁面
-            error_redirect_url = f"{frontend_url}/account/profile?{encoded_error}"
-            return redirect(error_redirect_url)
+            result_handler.set_error(
+                error=response_data.get('error', 'binding_failed'),
+                message=response_data.get('message', '綁定失敗'),
+                status_code=status_code
+            )
+        else:
+            result_handler.set_success(
+                data=response_data, 
+                status_code=status_code
+            )
         
-        # 綁定成功，生成臨時令牌
-        temp_token = str(uuid.uuid4())
+        result_handler.store_result(temp_token)
         
-        # 存儲登入結果
-        cache.set(
-            f"temp_auth_{temp_token}",
-            {'success': True, 'binding_result': response_data},
-            timeout=300  # 5分鐘過期
-        )
-
-        # 重定向到前端
-        redirect_url = f"{frontend_url}/auth/line-callback?temp_token={temp_token}&mode=binding"
-        return redirect(redirect_url)
+        # Redirect to frontend
+        return redirect(result_handler.get_redirect_url())
             
     except User.DoesNotExist:
         print(f"LINE 回調 - 錯誤: 找不到用戶 ID {user_id}")
-        return Response({
-            'success': False,
-            'error': 'user_not_found',
-            'message': '找不到對應的用戶，請重新登入後再嘗試綁定'
-        }, status=status.HTTP_404_NOT_FOUND)
+        result_handler.set_error(
+            'user_not_found',
+            '找不到對應的用戶，請重新登入後再嘗試綁定',
+            status.HTTP_404_NOT_FOUND
+        )
+        return redirect(result_handler.get_redirect_url())
 
 
-def handle_login_mode(request, service, frontend_url):
+def handle_login_mode(request, service, temp_token, result_handler):
     """處理 LINE 登入模式的邏輯"""
+    # Process login
     success, response_data, status_code = service.process_login(request)
     
-    # 如果處理失敗，返回錯誤信息
+    # 登入失敗
     if not success:
-        error_params = {
-            'error': response_data.get('error', 'login_failed'),
-            'message': response_data.get('message', '登入失敗')
+        result_handler.set_error(
+            error=response_data.get('error', 'login_failed'),
+            message=response_data.get('message', '登入失敗'),
+            status_code=status_code
+        )
+    else:
+        # Format successful login data
+        result_data = {
+            'success': True,
+            'access_token': response_data['tokens']['access'],
+            'refresh_token': response_data['tokens']['refresh'],
+            'user_id': response_data['user']['id'],
+            'username': response_data['user']['username'],
+            'status_code': status_code
         }
-        encoded_error = urlencode(error_params)
-        
-        # 重定向到前端的錯誤頁面
-        error_redirect_url = f"{frontend_url}/account/profile?{encoded_error}"
-        return redirect(error_redirect_url)
-
-    # 生成臨時令牌
-    temp_token = str(uuid.uuid4())
+        result_handler.set_success(
+            data=result_data, 
+            status_code=status_code
+        )
     
-    # 存儲登入結果
-    query_params = {
-        'success': True,
-        'access_token': response_data['tokens']['access'],
-        'refresh_token': response_data['tokens']['refresh'],
-        'user_id': response_data['user']['id'],
-        'username': response_data['user']['username'],
-    }
-
-    cache.set(
-        f"temp_auth_{temp_token}",
-        query_params,
-        timeout=300  # 5分鐘過期
-    )
-
-    # 重定向到前端
-    redirect_url = f"{frontend_url}/auth/line-callback?temp_token={temp_token}&mode=login"
-    return redirect(redirect_url)
-
+    # Store result and redirect
+    result_handler.store_result(temp_token)
+    return redirect(result_handler.get_redirect_url())
 
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def exchange_temp_token(request):
+    """透過取得的臨時令牌交換實際的緩存資料"""
+    # Read temporary token
     temp_token = request.data.get('temp_token')
     
     # 如果沒有提供臨時令牌，返回錯誤
     if not temp_token:
-        return Response({'error': 'missing_token'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({
+            'error': 'missing_token',
+            'message': '請提供臨時令牌',
+        }, status=status.HTTP_400_BAD_REQUEST)
     
     # 從緩存獲取存儲的令牌和用戶數據
-    auth_data = cache.get(f"temp_auth_{temp_token}")
-
-    print(auth_data)
+    cache_key = f"temp_auth_{temp_token}"
+    auth_data = cache.get(cache_key)
 
     if not auth_data:
-        return Response({'error': 'invalid_or_expired_token'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({
+            'error': 'invalid_or_expired_token',
+            'message': '無效或過期的臨時令牌',
+        }, status=status.HTTP_400_BAD_REQUEST)
 
     # 使用完即刪除，確保一次性使用
-    cache.delete(f"temp_auth_{temp_token}")
+    cache.delete(cache_key)
     
     # 返回實際令牌和用戶數據
-    return Response(auth_data, status=status.HTTP_200_OK)
+    return Response(
+        auth_data, 
+        status=auth_data.get('status_code', status.HTTP_200_OK)
+    )
+
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])

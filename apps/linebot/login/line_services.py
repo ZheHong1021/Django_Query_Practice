@@ -257,7 +257,7 @@ class LineLoginService:
             return False, {
                 'success': False,
                 'error': 'line_account_not_binded',
-                'message': '此 LINE 帳號尚未綁定到系統用戶，請先登入系統後綁定 LINE 帳號',
+                'message': '尚未綁定到系統中，請先登入系統後進行綁定',
                 'line_id': user_data['id']
             }, status.HTTP_404_NOT_FOUND
 
@@ -316,7 +316,7 @@ class LineLoginService:
                 return False, {
                     'success': False,
                     'error': 'line_account_already_binded',
-                    'message': '此 LINE 帳號已綁定到其他用戶，請使用其他 LINE 帳號'
+                    'message': '此 LINE 帳號已經被綁定到其他用戶'
                 }, status.HTTP_400_BAD_REQUEST
 
             # 儲存用戶資料

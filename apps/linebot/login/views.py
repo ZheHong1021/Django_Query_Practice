@@ -375,7 +375,7 @@ def exchange_temp_token(request):
     # 如果沒有提供臨時令牌，返回錯誤
     if not temp_token:
         return Response({
-            'error': 'missing_token',
+            'error': 'temporary_token_missing',
             'message': '請提供臨時令牌',
         }, status=status.HTTP_400_BAD_REQUEST)
     
@@ -385,7 +385,7 @@ def exchange_temp_token(request):
 
     if not auth_data:
         return Response({
-            'error': 'invalid_or_expired_token',
+            'error': 'temporary_token_invalid_or_expired',
             'message': '無效或過期的臨時令牌',
         }, status=status.HTTP_400_BAD_REQUEST)
 

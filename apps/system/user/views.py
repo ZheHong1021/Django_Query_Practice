@@ -67,6 +67,9 @@ class UserViewSet(PermissionMixin, SwaggerSchemaMixin, viewsets.ModelViewSet):
             fullname=User.get_fullname_annotation()
         )
 
+        # 關聯欄位(是否連接 Line 帳號)
+        qs = qs.with_is_line_connected()
+
         return qs
 
     #region (管理當前用戶資訊)

@@ -1,5 +1,19 @@
 from django.contrib.auth.base_user import BaseUserManager
 from django.utils.translation import gettext_lazy as _
+from django.db import models
+from django.db.models import Exists, OuterRef
+
+class UserQuerySet(models.QuerySet):
+    def with_is_line_connected(self):
+        from apps.linebot.lineuser.models import LineUser
+        return self.annotate(
+            is_line_connected=Exists(
+                LineUser.objects.filter(
+                    user=OuterRef("id")
+                )
+            )
+        )
+
 
 
 class CustomUserManager(BaseUserManager):
@@ -31,3 +45,9 @@ class CustomUserManager(BaseUserManager):
         if extra_fields.get("is_superuser") is not True:
             raise ValueError(_("Superuser must have is_superuser=True."))
         return self.create_user(username, password, **extra_fields)
+
+    def get_queryset(self):
+        return UserQuerySet(self.model, using=self._db)
+    
+    def with_is_line_connected(self):
+        return self.get_queryset().with_is_line_connected()

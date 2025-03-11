@@ -4,12 +4,19 @@ from common.filters import SearchFilter, IDsFilter
 from django.db.models import Q
 
 class UserFilter(SearchFilter, IDsFilter):
+    is_line_connected = filters.BooleanFilter(
+        field_name='is_line_connected',
+        label='Line 連線狀態',
+        help_text='Line 連線狀態',
+    )
+
     class Meta:
         model = User
         fields = [
             'username',
             'is_staff',
             'is_active',
+            'is_line_connected',
         ]
 
 class UserDeactivateLogFilter(SearchFilter, IDsFilter):

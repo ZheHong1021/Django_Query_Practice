@@ -3,8 +3,18 @@ from ..models import GENDER_CHOICES
 
 # 用戶基本序列化器
 class UserBaseSerializer(serializers.ModelSerializer):
-    gender_display = serializers.CharField(source='get_gender_display', read_only=True)
-    fullname = serializers.CharField(read_only=True)
+    gender_display = serializers.CharField(
+        source='get_gender_display', read_only=True,
+        help_text="性別"
+    )
+    fullname = serializers.CharField(
+        read_only=True,
+        help_text="全名"
+    )
+    is_line_connected = serializers.BooleanField(
+        read_only=True,
+        help_text="是否連接 Line 帳號"
+    )
      
     
 # 用戶欄位序列化器

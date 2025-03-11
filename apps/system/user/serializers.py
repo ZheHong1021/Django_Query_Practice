@@ -49,6 +49,10 @@ class UserSerializer(UserFieldSerializer):
         slug_field='codename' # 顯示權限名稱
     )
 
+    line_user = LineUserSerializer( # LINE 用戶
+        many=False, read_only=True
+    )
+
     class Meta:
         model = User
         exclude = ('password', ) # 排除密碼
